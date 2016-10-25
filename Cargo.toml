@@ -1,0 +1,14 @@
+[package]
+name = "webdriver"
+version = "0.1.0"
+authors = ["raf"]
+
+[dependencies]
+hyper = "0.10"
+rustc-serialize = "0.3"
+geckodriver = "0.8"
+log = "0.3"
+rand = "0.3"
+rustyline = "1.0"
+stderrlog = "0.2"
+
