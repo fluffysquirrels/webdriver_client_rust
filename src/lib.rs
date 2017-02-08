@@ -230,6 +230,12 @@ impl<T> DriverSession<T> {
         Ok(v.value)
     }
 
+    /// Get all cookies
+    pub fn get_cookies(&self) -> Result<Vec<Cookie>, Error> {
+        let v: Value<_> = try!(self.get(&format!("/session/{}/cookie", self.session_id)));
+        Ok(v.value)
+    }
+
     pub fn get_window_handle(&self) -> Result<String, Error> {
         let v: Value<_> = try!(self.get(&format!("/session/{}/window", self.session_id)));
         Ok(v.value)
@@ -266,6 +272,7 @@ impl<T> DriverSession<T> {
         }
         Ok(elems)
     }
+
 }
 
 impl<T> Drop for DriverSession<T> {
@@ -334,6 +341,7 @@ fn test() {
             println!("{}", img.attribute("src").unwrap());
     }
 
+    sess.get_cookies().unwrap();
     sess.get_title().unwrap();
     let handle = sess.get_window_handle().unwrap();
     let handles = sess.get_window_handles().unwrap();

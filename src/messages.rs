@@ -92,3 +92,13 @@ impl Decodable for ElementReference {
     }
 }
 
+#[derive(RustcDecodable)]
+pub struct Cookie {
+    name: String,
+    value: String,
+    path: String,
+    domain: String,
+    secure: bool,
+    httpOnly: bool,
+    // TODO: expiry:
+}
