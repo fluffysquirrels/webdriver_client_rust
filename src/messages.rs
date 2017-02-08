@@ -94,11 +94,11 @@ impl Decodable for ElementReference {
 
 #[derive(RustcDecodable)]
 pub struct Cookie {
-    name: String,
-    value: String,
-    path: String,
-    domain: String,
-    secure: bool,
-    httpOnly: bool,
+    pub name: String,
+    pub value: String,
+    pub path: String,
+    pub domain: String,
+    pub secure: bool,
+    pub httpOnly: bool,
     // TODO: expiry:
 }
