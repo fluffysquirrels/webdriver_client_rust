@@ -4,9 +4,6 @@
 use std::convert::From;
 use std::io::Read;
 use std::io;
-use std::process::{Command, Child, Stdio};
-use std::thread;
-use std::time::Duration;
 use std::fmt;
 
 extern crate hyper;
@@ -21,10 +18,11 @@ use rustc_serialize::json::{as_json, decode};
 extern crate log;
 
 extern crate rand;
-use rand::distributions::{IndependentSample, Range};
 
 mod messages;
 use messages::*;
+
+pub mod firefox;
 
 #[derive(Debug)]
 pub enum Error {
@@ -61,53 +59,6 @@ impl From<io::Error> for Error {
 
 pub trait Driver {
     fn url(&self) -> &str;
-}
-
-pub struct GeckoDriver {
-    child: Child,
-    url: String,
-}
-
-impl GeckoDriver {
-    pub fn new() -> Result<Self, Error> {
-        Self::with_binary("firefox")
-    }
-
-    pub fn with_binary(bin: &str) -> Result<Self, Error> {
-        let mut rng = rand::thread_rng();
-        let range = Range::new(30000, 60000);
-
-        // FIXME loop a few times
-        let port: u16 = range.ind_sample(&mut rng);
-        let cmd = try!(Command::new("geckodriver")
-                        .arg("-b")
-                        .arg(bin)
-                        .arg("--webdriver-port")
-                        .arg(format!("{}", port))
-                        .stdin(Stdio::null())
-                        .stderr(Stdio::null())
-                        .stdout(Stdio::null())
-                        .spawn());
-
-        // FIXME make this configurable
-        thread::sleep(Duration::new(1, 900));
-        Ok(GeckoDriver {
-            child: cmd,
-            url: format!("http://localhost:{}", port),
-        })
-    }
-}
-
-impl Drop for GeckoDriver {
-    fn drop(&mut self) {
-        let _ = self.child.kill();
-    }
-}
-
-impl Driver for GeckoDriver {
-    fn url(&self) -> &str {
-        &self.url
-    }
 }
 
 /// A WebDriver session.
@@ -318,34 +269,40 @@ impl<'a, T> Element<'a, T> {
     }
 }
 
-#[test]
-fn test() {
-    let gecko = GeckoDriver::new().unwrap();
-    let mut sess = DriverSession::new(gecko).unwrap();
-    sess.go("https://www.youtube.com/watch?v=dQw4w9WgXcQ").unwrap();
-    sess.get_current_url().unwrap();
-    sess.back().unwrap();
-    sess.forward().unwrap();
-    sess.refresh().unwrap();
-    sess.get_page_source().unwrap();
+#[cfg(test)]
+mod tests {
+    use super::firefox::GeckoDriver;
+    use super::{DriverSession, LocationStrategy};
 
-    {
-        let el = sess.find_element("a", LocationStrategy::Css).unwrap();
-        el.attribute("href").unwrap();
-        el.css_value("color").unwrap();
-        el.text().unwrap();
-        assert_eq!(el.name().unwrap(), "a");
+    #[test]
+    fn test() {
+        let gecko = GeckoDriver::new().unwrap();
+        let mut sess = DriverSession::new(gecko).unwrap();
+        sess.go("https://www.youtube.com/watch?v=dQw4w9WgXcQ").unwrap();
+        sess.get_current_url().unwrap();
+        sess.back().unwrap();
+        sess.forward().unwrap();
+        sess.refresh().unwrap();
+        sess.get_page_source().unwrap();
 
-        let imgs = sess.find_elements("img", LocationStrategy::Css).unwrap();
-        for img in &imgs {
-            println!("{}", img.attribute("src").unwrap());
+        {
+            let el = sess.find_element("a", LocationStrategy::Css).unwrap();
+            el.attribute("href").unwrap();
+            el.css_value("color").unwrap();
+            el.text().unwrap();
+            assert_eq!(el.name().unwrap(), "a");
+
+            let imgs = sess.find_elements("img", LocationStrategy::Css).unwrap();
+            for img in &imgs {
+                println!("{}", img.attribute("src").unwrap());
+        }
+
+        sess.get_cookies().unwrap();
+        sess.get_title().unwrap();
+        let handle = sess.get_window_handle().unwrap();
+        let handles = sess.get_window_handles().unwrap();
+        assert_eq!(handles.len(), 1);
+        }
+        sess.close_window().unwrap();
     }
-
-    sess.get_cookies().unwrap();
-    sess.get_title().unwrap();
-    let handle = sess.get_window_handle().unwrap();
-    let handles = sess.get_window_handles().unwrap();
-    assert_eq!(handles.len(), 1);
-    }
-    sess.close_window().unwrap();
 }

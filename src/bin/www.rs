@@ -1,6 +1,7 @@
 
 extern crate webdriver;
 use webdriver::*;
+use webdriver::firefox::GeckoDriver;
 
 extern crate rustyline;
 use rustyline::error::ReadlineError;
