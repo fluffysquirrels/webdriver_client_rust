@@ -5,6 +5,7 @@ use std::process::{Command, Child, Stdio};
 use std::thread;
 
 use rand::distributions::{IndependentSample, Range};
+use rand::thread_rng;
 
 pub struct GeckoDriver {
     child: Child,
@@ -17,7 +18,7 @@ impl GeckoDriver {
     }
 
     pub fn with_binary(bin: &str) -> Result<Self, Error> {
-        let mut rng = rand::thread_rng();
+        let mut rng = thread_rng();
         let range = Range::new(30000, 60000);
 
         // FIXME loop a few times

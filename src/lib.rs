@@ -19,7 +19,7 @@ extern crate log;
 
 extern crate rand;
 
-mod messages;
+pub mod messages;
 use messages::*;
 
 pub mod firefox;
@@ -272,7 +272,8 @@ impl<'a, T> Element<'a, T> {
 #[cfg(test)]
 mod tests {
     use super::firefox::GeckoDriver;
-    use super::{DriverSession, LocationStrategy};
+    use super::messages::LocationStrategy;
+    use super::DriverSession;
 
     #[test]
     fn test() {
