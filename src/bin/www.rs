@@ -1,6 +1,7 @@
 
 extern crate webdriver;
 use webdriver::*;
+use webdriver::messages::LocationStrategy;
 use webdriver::firefox::GeckoDriver;
 
 extern crate rustyline;
@@ -14,7 +15,22 @@ fn execute_function<T>(name: &str, args: &str, sess: &DriverSession<T>) -> Resul
         "refresh" => try!(sess.refresh()),
         "source" => println!("{}", try!(sess.get_page_source())),
         "url" => println!("{}", try!(sess.get_current_url())),
-        _ => println!("Unknown function: {}", name),
+        "innerhtml" => {
+            for (idx, elem) in sess.find_elements(args, LocationStrategy::Css)?.iter().enumerate() {
+                println!("#{} {}", idx, elem.inner_html()?);
+            }
+        }
+        "outerhtml" => {
+            for (idx, elem) in sess.find_elements(args, LocationStrategy::Css)?.iter().enumerate() {
+                println!("#{} {}", idx, elem.outer_html()?);
+            }
+        }
+        "windows" => {
+            for (idx, handle) in sess.get_window_handles()?.iter().enumerate() {
+                println!("#{} {}", idx, handle)
+            }
+        }
+        _ => println!("Unknown function: \"{}\"", name),
     }
     Ok(())
 }
@@ -37,7 +53,7 @@ fn main() {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(&line);
-                if let Err(err) = execute(&line, &sess) {
+                if let Err(err) = execute(line.trim_matches('\n'), &sess) {
                     println!("{}", err);
                 }
             },

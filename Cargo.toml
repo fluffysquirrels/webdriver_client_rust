@@ -5,7 +5,9 @@ authors = ["raf"]
 
 [dependencies]
 hyper = "0.10"
-rustc-serialize = "0.3"
+serde = "0.9"
+serde_json = "0.9"
+serde_derive = "0.9"
 geckodriver = "0.8"
 log = "0.3"
 rand = "0.3"

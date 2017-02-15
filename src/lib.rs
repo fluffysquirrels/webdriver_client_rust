@@ -10,9 +10,14 @@ extern crate hyper;
 use hyper::client::*;
 use hyper::Url;
 
-extern crate rustc_serialize;
-use rustc_serialize::{Encodable, Decodable};
-use rustc_serialize::json::{as_json, decode};
+extern crate serde;
+use serde::{Serialize, Deserialize};
+
+extern crate serde_json;
+pub use serde_json::Value as JsonValue;
+
+#[macro_use]
+extern crate serde_derive;
 
 #[macro_use]
 extern crate log;
@@ -29,7 +34,7 @@ pub enum Error {
     FailedToLaunchDriver,
     InvalidUrl,
     ConnectionError,
-    JsonDecodeError(String),
+    JsonDecodeError(serde_json::Error),
     WebDriverError(WebDriverError),
 }
 
@@ -54,6 +59,12 @@ impl From<hyper::Error> for Error {
 impl From<io::Error> for Error {
     fn from(_: io::Error) -> Error {
         Error::ConnectionError
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Error {
+        Error::JsonDecodeError(e)
     }
 }
 
@@ -99,7 +110,7 @@ impl<T> DriverSession<T> {
         &self.session_id
     }
 
-    fn get<D: Decodable>(&self, path: &str) -> Result<D, Error> {
+    fn get<D: Deserialize>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         let mut res = try!(self.client.get(url)
@@ -107,7 +118,7 @@ impl<T> DriverSession<T> {
         Self::decode(&mut res)
     }
 
-    fn delete<D: Decodable>(&self, path: &str) -> Result<D, Error> {
+    fn delete<D: Deserialize>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         let mut res = try!(self.client.delete(url)
@@ -115,25 +126,23 @@ impl<T> DriverSession<T> {
         Self::decode(&mut res)
     }
 
-    fn decode<D: Decodable>(res: &mut Response) -> Result<D, Error> {
+    fn decode<D: Deserialize>(res: &mut Response) -> Result<D, Error> {
         let mut data = String::new();
         try!(res.read_to_string(&mut data));
         debug!("{}", data);
         if !res.status.is_success() {
-            let err = try!(decode(&data)
-                           .map_err(|_| Error::JsonDecodeError(data)));
+            let err = try!(serde_json::from_str(&data));
             return Err(Error::WebDriverError(err));
         }
-        let response = try!(decode(&data)
-                           .map_err(|_| Error::JsonDecodeError(data)));
+        let response = try!(serde_json::from_str(&data));
         Ok(response)
     }
 
-    fn post<D: Decodable, E: Encodable>(&self, path: &str, body: &E) -> Result<D, Error> {
+    fn post<D: Deserialize, E: Serialize>(&self, path: &str, body: &E) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         let mut res = try!(self.client.post(url)
-                            .body(&format!("{}", as_json(body)))
+                            .body(&try!(serde_json::to_string(body)))
                             .send());
         Self::decode(&mut res)
     }
@@ -193,7 +202,7 @@ impl<T> DriverSession<T> {
     }
 
     pub fn switch_window(&mut self, handle: &str) -> Result<(), Error> {
-        let _: Empty = try!(self.post(&format!("/session/{}/window", self.session_id), &SwitchWindowCmd { handle: handle }));
+        let _: Empty = try!(self.post(&format!("/session/{}/window", self.session_id), &SwitchWindowCmd::from(handle)));
         Ok(())
     }
 
@@ -224,6 +233,15 @@ impl<T> DriverSession<T> {
         Ok(elems)
     }
 
+    pub fn execute(&self, script: ExecuteCmd) -> Result<JsonValue, Error> {
+        let v: Value<JsonValue> = try!(self.post(&format!("/session/{}/execute/sync", self.session_id), &script));
+        Ok(v.value)
+    }
+
+    pub fn switch_to_frame(&self, handle: JsonValue) -> Result<(), Error> {
+        let _: Empty = try!(self.post(&format!("/session/{}/frame", self.session_id), &SwitchFrameCmd::from(handle)));
+        Ok(())
+    }
 }
 
 impl<T> Drop for DriverSession<T> {
@@ -267,6 +285,51 @@ impl<'a, T> Element<'a, T> {
         let v: Value<_> = try!(self.session.get(&format!("/session/{}/element/{}/name", self.session.session_id(), self.reference)));
         Ok(v.value)
     }
+
+    pub fn reference(&self) -> Result<JsonValue, Error> {
+        serde_json::to_value(&ElementReference::from_str(&self.reference))
+            .map_err(|err| Error::from(err))
+    }
+
+    /// Gets the `innerHTML` javascript attribute for this element. Some drivers can get
+    /// this using regular attributes, in others it does not work. This method gets it
+    /// executing a bit of javascript.
+    pub fn inner_html(&self) -> Result<JsonValue, Error> {
+        let script = ExecuteCmd {
+            script: "return arguments[0].innerHTML;".to_owned(),
+            args: vec![self.reference()?],
+        };
+        self.session.execute(script)
+    }
+
+    pub fn outer_html(&self) -> Result<JsonValue, Error> {
+        let script = ExecuteCmd {
+            script: "return arguments[0].outerHTML;".to_owned(),
+            args: vec![self.reference()?],
+        };
+        self.session.execute(script)
+    }
+}
+
+/// Switch the context of the current session to the given frame reference.
+///
+/// This structure implements Drop, and restores the session context
+/// to the current top level window.
+pub struct FrameContext<'a, T: 'a> {
+    session: &'a DriverSession<T>,
+}
+
+impl<'a, T> FrameContext<'a, T> {
+    pub fn new(session: &DriverSession<T>, frameref: JsonValue) -> Result<FrameContext<T>, Error> {
+        session.switch_to_frame(frameref)?;
+        Ok(FrameContext { session: session })
+    }
+}
+
+impl<'a, T> Drop for FrameContext<'a, T> {
+    fn drop(&mut self) {
+        let _ = self.session.switch_to_frame(JsonValue::Null);
+    }
 }
 
 #[cfg(test)]
@@ -296,11 +359,11 @@ mod tests {
             let imgs = sess.find_elements("img", LocationStrategy::Css).unwrap();
             for img in &imgs {
                 println!("{}", img.attribute("src").unwrap());
-        }
+            }
 
         sess.get_cookies().unwrap();
         sess.get_title().unwrap();
-        let handle = sess.get_window_handle().unwrap();
+        sess.get_window_handle().unwrap();
         let handles = sess.get_window_handles().unwrap();
         assert_eq!(handles.len(), 1);
         }
