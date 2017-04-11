@@ -1,7 +1,7 @@
 
 extern crate webdriver;
 use webdriver::*;
-use webdriver::messages::LocationStrategy;
+use webdriver::messages::{LocationStrategy, ExecuteCmd};
 use webdriver::firefox::GeckoDriver;
 
 extern crate rustyline;
@@ -28,6 +28,16 @@ fn execute_function<T>(name: &str, args: &str, sess: &DriverSession<T>) -> Resul
         "windows" => {
             for (idx, handle) in sess.get_window_handles()?.iter().enumerate() {
                 println!("#{} {}", idx, handle)
+            }
+        }
+        "execute" => {
+            let script = ExecuteCmd {
+                script: args.to_owned(),
+                args: vec![],
+            };
+            match sess.execute(script)? {
+                JsonValue::String(ref s) => println!("{}", s),
+                other => println!("{}", other),
             }
         }
         _ => println!("Unknown function: \"{}\"", name),
