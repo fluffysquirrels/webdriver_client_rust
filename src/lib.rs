@@ -82,12 +82,13 @@ pub trait Driver {
 
 /// A WebDriver session.
 ///
-/// The session is removed on `Drop`
+/// By default the session is removed on `Drop`
 pub struct DriverSession<'a> {
     driver: PhantomData<&'a Driver>,
     baseurl: Url,
     client: Client,
     session_id: String,
+    drop_session: bool,
 }
 
 impl<'a> DriverSession<'a> {
@@ -98,6 +99,7 @@ impl<'a> DriverSession<'a> {
             baseurl: baseurl,
             client: Client::new(),
             session_id: String::new(),
+            drop_session: true,
         };
         info!("Creating session at {}", url);
         let sess = try!(s.new_session(&NewSessionCmd::new()));
@@ -107,6 +109,11 @@ impl<'a> DriverSession<'a> {
 
     pub fn session_id(&self) -> &str {
         &self.session_id
+    }
+
+    /// Whether to remove the session on Drop, the default is true
+    pub fn drop_session(&mut self, drop: bool) {
+        self.drop_session = drop;
     }
 
     fn get<D: Deserialize>(&self, path: &str) -> Result<D, Error> {
@@ -245,7 +252,9 @@ impl<'a> DriverSession<'a> {
 
 impl<'a> Drop for DriverSession<'a> {
     fn drop(&mut self) {
-        let _: Result<Empty,_> = self.delete(&format!("/session/{}", self.session_id));
+        if self.drop_session {
+            let _: Result<Empty,_> = self.delete(&format!("/session/{}", self.session_id));
+        }
     }
 }
 
