@@ -11,7 +11,8 @@ use hyper::client::*;
 use hyper::Url;
 
 extern crate serde;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 extern crate serde_json;
 pub use serde_json::Value as JsonValue;
@@ -21,6 +22,8 @@ extern crate serde_derive;
 
 #[macro_use]
 extern crate log;
+
+
 
 extern crate rand;
 
@@ -110,7 +113,7 @@ impl<T> DriverSession<T> {
         &self.session_id
     }
 
-    fn get<D: Deserialize>(&self, path: &str) -> Result<D, Error> {
+    fn get<D: DeserializeOwned>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         let mut res = try!(self.client.get(url)
@@ -118,7 +121,7 @@ impl<T> DriverSession<T> {
         Self::decode(&mut res)
     }
 
-    fn delete<D: Deserialize>(&self, path: &str) -> Result<D, Error> {
+    fn delete<D: DeserializeOwned>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         let mut res = try!(self.client.delete(url)
@@ -126,7 +129,7 @@ impl<T> DriverSession<T> {
         Self::decode(&mut res)
     }
 
-    fn decode<D: Deserialize>(res: &mut Response) -> Result<D, Error> {
+    fn decode<D: DeserializeOwned>(res: &mut Response) -> Result<D, Error> {
         let mut data = String::new();
         try!(res.read_to_string(&mut data));
         debug!("{}", data);
@@ -138,7 +141,7 @@ impl<T> DriverSession<T> {
         Ok(response)
     }
 
-    fn post<D: Deserialize, E: Serialize>(&self, path: &str, body: &E) -> Result<D, Error> {
+    fn post<D: DeserializeOwned, E: Serialize>(&self, path: &str, body: &E) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         let mut res = try!(self.client.post(url)

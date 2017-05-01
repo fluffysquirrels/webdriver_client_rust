@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
-use serde::de::{Visitor, MapVisitor};
+use serde::de::{Visitor, MapAccess};
 use serde::de::Error as DeError;
 use serde::ser::SerializeStruct;
 use serde_json::Value as JsonValue;
@@ -119,14 +119,14 @@ impl Serialize for ElementReference {
     }
 }
 
-impl Deserialize for ElementReference {
-    fn deserialize<D: Deserializer>(d: D) -> Result<Self, D::Error> {
+impl<'de> Deserialize<'de> for ElementReference {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         enum Field { Reference };
 
-        impl Deserialize for Field {
-            fn deserialize<D: Deserializer>(d: D) -> Result<Self, D::Error> {
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
                 struct FieldVisitor;
-                impl Visitor for FieldVisitor {
+                impl<'de> Visitor<'de> for FieldVisitor {
                     type Value = Field;
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                         formatter.write_str("element-6066-11e4-a52e-4f735466cecf")
@@ -141,12 +141,12 @@ impl Deserialize for ElementReference {
                     }
                 }
 
-                d.deserialize_struct_field(FieldVisitor)
+                d.deserialize_identifier(FieldVisitor)
             }
         }
 
         struct ElementReferenceVisitor;
-        impl Visitor for ElementReferenceVisitor {
+        impl<'de> Visitor<'de> for ElementReferenceVisitor {
             type Value = ElementReference;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -154,16 +154,16 @@ impl Deserialize for ElementReference {
             }
 
             fn visit_map<V>(self, mut visitor: V) -> Result<ElementReference, V::Error>
-                where V: MapVisitor
+                where V: MapAccess<'de>
             {
                 let mut reference = None;
-                while let Some(key) = visitor.visit_key()? {
+                while let Some(key) = visitor.next_key()? {
                     match key {
                         Field::Reference => {
                             if reference.is_some() {
                                 return Err(DeError::duplicate_field("element-6066-11e4-a52e-4f735466cecf"));
                             }
-                            reference = Some(visitor.visit_value()?);
+                            reference = Some(visitor.next_value()?);
                         }
                     }
                 }
