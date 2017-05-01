@@ -4,13 +4,12 @@ version = "0.1.0"
 authors = ["raf"]
 
 [dependencies]
-hyper = "0.10"
 serde = "0.9"
 serde_json = "0.9"
 serde_derive = "0.9"
-geckodriver = "0.8"
-log = "0.3"
-rand = "0.3"
-rustyline = "1.0"
-stderrlog = "0.2"
-
+hyper = "^0.10"
+geckodriver = "^0.8"
+log = "^0.3"
+rand = "^0.3"
+rustyline = "^1.0"
+stderrlog = "^0.2"
