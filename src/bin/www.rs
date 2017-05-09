@@ -1,7 +1,7 @@
 
 extern crate webdriver;
 use webdriver::*;
-use webdriver::messages::LocationStrategy;
+use webdriver::messages::{ ExecuteCmd, LocationStrategy };
 use webdriver::firefox::GeckoDriver;
 
 extern crate rustyline;
@@ -12,6 +12,10 @@ fn execute_function<T>(name: &str, args: &str, sess: &DriverSession<T>) -> Resul
     match name {
         "back" => try!(sess.back()),
         "go" => try!(sess.go(args)),
+        "execute" => {
+            let out = (sess.execute(ExecuteCmd { script: From::from(args), args: vec![] }))?;
+            println!("{}", out);
+        },
         "refresh" => try!(sess.refresh()),
         "source" => println!("{}", try!(sess.get_page_source())),
         "url" => println!("{}", try!(sess.get_current_url())),
