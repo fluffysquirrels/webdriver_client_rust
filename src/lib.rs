@@ -106,6 +106,24 @@ impl<T> DriverSession<T> {
         info!("Creating session at {}", url);
         let sess = try!(s.new_session(&NewSessionCmd::new()));
         s.session_id = sess.sessionId;
+        info!("Session {} created", s.session_id);
+        Ok(s)
+    }
+
+    /// Connect to an existing WebDriver session
+    pub fn for_session(url: &str, session_id: &str) -> Result<Self, Error> {
+        let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
+        let s = DriverSession {
+            driver: None,
+            baseurl: baseurl,
+            client: Client::new(),
+            session_id: session_id.to_owned(),
+        };
+        info!("Connecting to session at {} with id {}", url, session_id);
+        // We can fetch any value for the session to verify it exists.
+        // The page URL will work.
+        s.get_current_url()?;
+        info!("Connected to existing session {}", s.session_id);
         Ok(s)
     }
 
