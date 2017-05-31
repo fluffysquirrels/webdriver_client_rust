@@ -76,7 +76,7 @@ pub trait Driver {
     fn url(&self) -> &str;
     /// Start a session for this driver
     fn session<'a>(&'a self) -> Result<DriverSession<'a>, Error> {
-        DriverSession::for_url(self.url())
+        DriverSession::create_session(self.url())
     }
 }
 
@@ -92,7 +92,7 @@ pub struct DriverSession<'a> {
 }
 
 impl<'a> DriverSession<'a> {
-    pub fn for_url(url: &str) -> Result<DriverSession<'a>, Error> {
+    pub fn create_session(url: &str) -> Result<DriverSession<'a>, Error> {
         let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
         let mut s = DriverSession {
             driver: PhantomData,
@@ -104,6 +104,22 @@ impl<'a> DriverSession<'a> {
         info!("Creating session at {}", url);
         let sess = try!(s.new_session(&NewSessionCmd::new()));
         s.session_id = sess.sessionId;
+        Ok(s)
+    }
+
+    /// Use an existing session
+    pub fn attach(url: &str, session_id: &str) -> Result<DriverSession<'a>, Error> {
+        let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
+        let mut s = DriverSession {
+            driver: PhantomData,
+            baseurl: baseurl,
+            client: Client::new(),
+            session_id: session_id.to_owned(),
+            drop_session: true,
+        };
+        // FIXME /status would be preferable here to test the connection, but
+        // it does not seem to work for the current geckodriver
+        let _ = s.get_current_url()?;
         Ok(s)
     }
 
