@@ -2,6 +2,7 @@
 
 extern crate env_logger;
 extern crate log;
+extern crate serde_json;
 extern crate webdriver;
 
 use env_logger::LogBuilder;
@@ -9,6 +10,7 @@ use log::LogLevelFilter;
 use std::env;
 use webdriver::DriverSession;
 use webdriver::firefox::GeckoDriver;
+use webdriver::messages::ExecuteCmd;
 
 #[test]
 fn test_file() {
@@ -41,6 +43,34 @@ fn test_file() {
         let handles = sess.get_window_handles().unwrap();
         assert_eq!(handles.len(), 1);
     }
+
+    {
+        // Test execute return
+        let exec_json = sess.execute(ExecuteCmd {
+            script: "return 2 + 2;".to_owned(),
+            args: vec![],
+        }).unwrap();
+        let exec_int = serde_json::from_value::<i64>(exec_json).unwrap();
+        assert_eq!(exec_int, 4);
+    }
+
+    {
+        // Test execute handling an exception
+        let exec_res = sess.execute(ExecuteCmd {
+            script: "throw 'SomeException';".to_owned(),
+            args: vec![],
+        });
+        assert!(exec_res.is_err());
+        let err = exec_res.err().unwrap();
+        let err = match err {
+            webdriver::Error::WebDriverError(e) => e,
+            _ => panic!("Unexpected error variant: {:#?}", err),
+        };
+        assert_eq!(err.message, "SomeException");
+    }
+
+    // TODO(alex): Test execute_async() success / failure.
+
     sess.close_window().unwrap();
 }
 
