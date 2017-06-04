@@ -1,5 +1,5 @@
 [package]
-name = "webdriver"
+name = "webdriver_client"
 version = "0.1.0"
 authors = ["raf",
            "Alex Helfet <alex.helfet@gmail.com>"]

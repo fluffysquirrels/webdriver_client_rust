@@ -3,14 +3,14 @@
 extern crate env_logger;
 extern crate log;
 extern crate serde_json;
-extern crate webdriver;
+extern crate webdriver_client;
 
 use env_logger::LogBuilder;
 use log::LogLevelFilter;
 use std::env;
-use webdriver::Driver;
-use webdriver::firefox::GeckoDriver;
-use webdriver::messages::ExecuteCmd;
+use webdriver_client::Driver;
+use webdriver_client::firefox::GeckoDriver;
+use webdriver_client::messages::ExecuteCmd;
 
 #[test]
 fn test_file() {
@@ -66,7 +66,7 @@ fn test_file() {
         assert!(exec_res.is_err());
         let err = exec_res.err().unwrap();
         let err = match err {
-            webdriver::Error::WebDriverError(e) => e,
+            webdriver_client::Error::WebDriverError(e) => e,
             _ => panic!("Unexpected error variant: {:#?}", err),
         };
         assert_eq!(err.error, "javascript error");
@@ -99,9 +99,9 @@ fn init_logging() {
 }
 
 mod youtube_integration_test {
-    use webdriver::Driver;
-    use webdriver::firefox::GeckoDriver;
-    use webdriver::messages::LocationStrategy;
+    use webdriver_client::Driver;
+    use webdriver_client::firefox::GeckoDriver;
+    use webdriver_client::messages::LocationStrategy;
 
     /// This depends on an external page not under our control, we
     /// should migrate to using local files.

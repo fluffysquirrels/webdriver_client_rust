@@ -1,2 +1,3 @@
+# WebDriver client library in Rust
 
-Webdriver client library in Rust. Currently only geckodriver is supported.
+Note: Currently only geckodriver is supported.

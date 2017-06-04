@@ -1,8 +1,7 @@
-
-extern crate webdriver;
-use webdriver::*;
-use webdriver::messages::{LocationStrategy, ExecuteCmd};
-use webdriver::firefox::GeckoDriver;
+extern crate webdriver_client;
+use webdriver_client::*;
+use webdriver_client::messages::{LocationStrategy, ExecuteCmd};
+use webdriver_client::firefox::GeckoDriver;
 
 extern crate rustyline;
 use rustyline::error::ReadlineError;
