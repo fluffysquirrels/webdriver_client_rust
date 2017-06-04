@@ -268,6 +268,11 @@ impl<T> DriverSession<T> {
         Ok(v.value)
     }
 
+    pub fn execute_async(&self, script: ExecuteCmd) -> Result<JsonValue, Error> {
+        let v: Value<JsonValue> = try!(self.post(&format!("/session/{}/execute/async", self.session_id), &script));
+        Ok(v.value)
+    }
+
     pub fn switch_to_frame(&self, handle: JsonValue) -> Result<(), Error> {
         let _: Empty = try!(self.post(&format!("/session/{}/frame", self.session_id), &SwitchFrameCmd::from(handle)));
         Ok(())

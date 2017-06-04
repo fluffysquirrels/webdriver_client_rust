@@ -66,10 +66,20 @@ fn test_file() {
             webdriver::Error::WebDriverError(e) => e,
             _ => panic!("Unexpected error variant: {:#?}", err),
         };
+        assert_eq!(err.error, "javascript error");
         assert_eq!(err.message, "SomeException");
     }
 
-    // TODO(alex): Test execute_async() success / failure.
+    {
+        // Test execute async
+        let exec_json = sess.execute_async(ExecuteCmd {
+            script: "let resolve = arguments[0];\n\
+                     setTimeout(() => resolve(4), 1000);".to_owned(),
+            args: vec![],
+        }).unwrap();
+        let exec_int = serde_json::from_value::<i64>(exec_json).unwrap();
+        assert_eq!(exec_int, 4);
+    }
 
     sess.close_window().unwrap();
 }
