@@ -154,8 +154,8 @@ impl<T> DriverSession<T> {
         try!(res.read_to_string(&mut data));
         debug!("result body: '{}'", data);
         if !res.status.is_success() {
-            let err = try!(serde_json::from_str(&data));
-            return Err(Error::WebDriverError(err));
+            let err: Value<WebDriverError> = try!(serde_json::from_str(&data));
+            return Err(Error::WebDriverError(err.value));
         }
         let response = try!(serde_json::from_str(&data));
         Ok(response)
@@ -175,8 +175,8 @@ impl<T> DriverSession<T> {
 
     /// Create a new webdriver session
     fn new_session(&mut self, params: &NewSessionCmd) -> Result<Session, Error> {
-        let resp: Session = try!(self.post("/session", &params));
-        Ok(resp)
+        let resp: Value<Session> = try!(self.post("/session", &params));
+        Ok(resp.value)
     }
 
     /// Navigate to the given URL
