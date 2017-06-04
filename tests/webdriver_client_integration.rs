@@ -16,7 +16,8 @@ use webdriver::messages::ExecuteCmd;
 fn test_file() {
     init_logging();
 
-    let gecko = GeckoDriver::new().unwrap();
+    // TODO: Perhaps calculate path from PATH environment variable.
+    let gecko = GeckoDriver::with_binary("/usr/bin/firefox").unwrap();
     let mut sess = DriverSession::new(gecko).unwrap();
 
     // `cargo test` starts with current directory set to the crate root.
