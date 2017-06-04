@@ -134,6 +134,7 @@ impl<T> DriverSession<T> {
     fn get<D: DeserializeOwned>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
+        debug!("GET {}", url);
         let mut res = try!(self.client.get(url)
                             .send());
         Self::decode(&mut res)
@@ -142,6 +143,7 @@ impl<T> DriverSession<T> {
     fn delete<D: DeserializeOwned>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
+        debug!("DELETE {}", url);
         let mut res = try!(self.client.delete(url)
                             .send());
         Self::decode(&mut res)
@@ -150,7 +152,7 @@ impl<T> DriverSession<T> {
     fn decode<D: DeserializeOwned>(res: &mut Response) -> Result<D, Error> {
         let mut data = String::new();
         try!(res.read_to_string(&mut data));
-        debug!("{}", data);
+        debug!("result body: '{}'", data);
         if !res.status.is_success() {
             let err = try!(serde_json::from_str(&data));
             return Err(Error::WebDriverError(err));
@@ -162,8 +164,11 @@ impl<T> DriverSession<T> {
     fn post<D: DeserializeOwned, E: Serialize>(&self, path: &str, body: &E) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
+        let body_str = try!(serde_json::to_string(body));
+        debug!("POST url: {}\n\
+                body: {}", url, body_str);
         let mut res = try!(self.client.post(url)
-                            .body(&try!(serde_json::to_string(body)))
+                            .body(&body_str)
                             .send());
         Self::decode(&mut res)
     }
