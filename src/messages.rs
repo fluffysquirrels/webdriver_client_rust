@@ -7,6 +7,7 @@ use serde::ser::SerializeStruct;
 use serde_json::Value as JsonValue;
 use std::fmt;
 
+#[derive(Debug)]
 pub enum LocationStrategy {
     Css,
     LinkText,
@@ -25,10 +26,11 @@ impl Serialize for LocationStrategy {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 pub struct WebDriverError {
     pub error: String,
     pub message: String,
+    pub stacktrace: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -49,7 +51,7 @@ impl NewSessionCmd {
 
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Session {
     pub sessionId: String,
 }
@@ -59,12 +61,12 @@ pub struct GoCmd {
     pub url: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Value<T> {
     pub value: T,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct CurrentTitle {
     pub title: String,
 }
@@ -91,8 +93,8 @@ impl SwitchWindowCmd {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct Empty {} 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Empty {}
 
 #[derive(Serialize)]
 pub struct FindElementCmd<'a> {
@@ -179,7 +181,7 @@ impl<'de> Deserialize<'de> for ElementReference {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Cookie {
     pub name: String,
     pub value: String,

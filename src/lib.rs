@@ -4,7 +4,7 @@
 use std::convert::From;
 use std::io::Read;
 use std::io;
-use std::fmt;
+use std::fmt::{self, Debug};
 
 extern crate hyper;
 use hyper::client::*;
@@ -131,7 +131,7 @@ impl<T> DriverSession<T> {
         &self.session_id
     }
 
-    fn get<D: DeserializeOwned>(&self, path: &str) -> Result<D, Error> {
+    fn get<D: DeserializeOwned + Debug>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         debug!("GET {}", url);
@@ -140,7 +140,7 @@ impl<T> DriverSession<T> {
         Self::decode(&mut res)
     }
 
-    fn delete<D: DeserializeOwned>(&self, path: &str) -> Result<D, Error> {
+    fn delete<D: DeserializeOwned + Debug>(&self, path: &str) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         debug!("DELETE {}", url);
@@ -149,19 +149,23 @@ impl<T> DriverSession<T> {
         Self::decode(&mut res)
     }
 
-    fn decode<D: DeserializeOwned>(res: &mut Response) -> Result<D, Error> {
+    fn decode<D: DeserializeOwned + Debug>(res: &mut Response) -> Result<D, Error> {
         let mut data = String::new();
         try!(res.read_to_string(&mut data));
-        debug!("result body: '{}'", data);
+        debug!("result status: {}\n\
+                body: '{}'", res.status, data);
+
         if !res.status.is_success() {
             let err: Value<WebDriverError> = try!(serde_json::from_str(&data));
+            trace!("deserialize error result: {:#?}", err);
             return Err(Error::WebDriverError(err.value));
         }
-        let response = try!(serde_json::from_str(&data));
-        Ok(response)
+        let response = serde_json::from_str(&data);
+        trace!("deserialize result: {:#?}", response);
+        Ok(response?)
     }
 
-    fn post<D: DeserializeOwned, E: Serialize>(&self, path: &str, body: &E) -> Result<D, Error> {
+    fn post<D: DeserializeOwned + Debug, E: Serialize>(&self, path: &str, body: &E) -> Result<D, Error> {
         let url = try!(self.baseurl.join(path)
                            .map_err(|_| Error::InvalidUrl));
         let body_str = try!(serde_json::to_string(body));
