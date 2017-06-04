@@ -8,7 +8,7 @@ extern crate webdriver;
 use env_logger::LogBuilder;
 use log::LogLevelFilter;
 use std::env;
-use webdriver::DriverSession;
+use webdriver::Driver;
 use webdriver::firefox::GeckoDriver;
 use webdriver::messages::ExecuteCmd;
 
@@ -17,8 +17,10 @@ fn test_file() {
     init_logging();
 
     // TODO: Perhaps calculate path from PATH environment variable.
-    let gecko = GeckoDriver::with_binary("/usr/bin/firefox").unwrap();
-    let mut sess = DriverSession::new(gecko).unwrap();
+    let gecko = GeckoDriver::build()
+        .firefox_binary("/usr/bin/firefox")
+        .spawn().unwrap();
+    let sess = gecko.session().unwrap();
 
     // `cargo test` starts with current directory set to the crate root.
     let crate_root =
@@ -82,7 +84,7 @@ fn test_file() {
         assert_eq!(exec_int, 4);
     }
 
-    sess.close_window().unwrap();
+    // sess.close_window().unwrap();
 }
 
 fn init_logging() {
@@ -97,15 +99,20 @@ fn init_logging() {
 }
 
 mod youtube_integration_test {
+    use webdriver::Driver;
     use webdriver::firefox::GeckoDriver;
     use webdriver::messages::LocationStrategy;
-    use webdriver::DriverSession;
 
+    /// This depends on an external page not under our control, we
+    /// should migrate to using local files.
     #[test]
     #[ignore]
     fn test() {
-        let gecko = GeckoDriver::new().unwrap();
-        let mut sess = DriverSession::new(gecko).unwrap();
+        let gecko = GeckoDriver::build()
+            .kill_on_drop(true)
+            .spawn()
+            .unwrap();
+        let mut sess = gecko.session().unwrap();
         sess.go("https://www.youtube.com/watch?v=dQw4w9WgXcQ").unwrap();
         sess.get_current_url().unwrap();
         sess.back().unwrap();

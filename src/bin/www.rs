@@ -1,21 +1,17 @@
 
 extern crate webdriver;
 use webdriver::*;
-use webdriver::messages::{ ExecuteCmd, LocationStrategy };
+use webdriver::messages::{LocationStrategy, ExecuteCmd};
 use webdriver::firefox::GeckoDriver;
 
 extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-fn execute_function<T>(name: &str, args: &str, sess: &DriverSession<T>) -> Result<(), Error> {
+fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), Error> {
     match name {
         "back" => try!(sess.back()),
         "go" => try!(sess.go(args)),
-        "execute" => {
-            let out = (sess.execute(ExecuteCmd { script: From::from(args), args: vec![] }))?;
-            println!("{}", out);
-        },
         "refresh" => try!(sess.refresh()),
         "source" => println!("{}", try!(sess.get_page_source())),
         "url" => println!("{}", try!(sess.get_current_url())),
@@ -34,21 +30,31 @@ fn execute_function<T>(name: &str, args: &str, sess: &DriverSession<T>) -> Resul
                 println!("#{} {}", idx, handle)
             }
         }
+        "execute" => {
+            let script = ExecuteCmd {
+                script: args.to_owned(),
+                args: vec![],
+            };
+            match sess.execute(script)? {
+                JsonValue::String(ref s) => println!("{}", s),
+                other => println!("{}", other),
+            }
+        }
         _ => println!("Unknown function: \"{}\"", name),
     }
     Ok(())
 }
 
-fn execute<T>(line: &str, sess: &DriverSession<T>) -> Result<(), Error>{
+fn execute(line: &str, sess: &DriverSession) -> Result<(), Error>{
     let (cmd, args) = line.find(' ')
         .map_or((line, "".as_ref()), |idx| line.split_at(idx));
     execute_function(cmd, args, sess)
 }
 
 fn main() {
-    let gecko = GeckoDriver::new()
+    let gecko = GeckoDriver::spawn()
         .expect("Unable to start geckodriver");
-    let sess = DriverSession::new(gecko)
+    let sess = gecko.session()
         .expect("Unable to start WebDriver session");
 
     let mut rl = Editor::<()>::new();
@@ -73,5 +79,4 @@ fn main() {
             }
         }
     }
-
 }

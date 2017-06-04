@@ -7,6 +7,7 @@ use std::convert::From;
 use std::io::Read;
 use std::io;
 use std::fmt::{self, Debug};
+use std::marker::PhantomData;
 
 extern crate hyper;
 use hyper::client::*;
@@ -39,6 +40,7 @@ pub enum Error {
     FailedToLaunchDriver,
     InvalidUrl,
     ConnectionError,
+    Io(io::Error),
     JsonDecodeError(serde_json::Error),
     WebDriverError(WebDriverError),
 }
@@ -49,6 +51,7 @@ impl fmt::Display for Error {
             Error::FailedToLaunchDriver => write!(f, "Unable to start browser driver"),
             Error::InvalidUrl => write!(f, "Invalid URL"),
             Error::ConnectionError => write!(f, "Error connecting to browser"),
+            Error::Io(ref err) => write!(f, "{}", err),
             Error::JsonDecodeError(ref s) => write!(f, "Received invalid response from browser: {}", s),
             Error::WebDriverError(ref err) => write!(f, "Error: {}", err.message),
         }
@@ -62,8 +65,8 @@ impl From<hyper::Error> for Error {
 }
 
 impl From<io::Error> for Error {
-    fn from(_: io::Error) -> Error {
-        Error::ConnectionError
+    fn from(err: io::Error) -> Error {
+        Error::Io(err)
     }
 }
 
@@ -74,36 +77,34 @@ impl From<serde_json::Error> for Error {
 }
 
 pub trait Driver {
+    /// The url used to connect to this driver
     fn url(&self) -> &str;
+    /// Start a session for this driver
+    fn session<'a>(&'a self) -> Result<DriverSession<'a>, Error> {
+        DriverSession::create_session(self.url())
+    }
 }
 
 /// A WebDriver session.
 ///
-/// The session is removed on `Drop`
-pub struct DriverSession<T> {
-    driver: Option<T>,
+/// By default the session is removed on `Drop`
+pub struct DriverSession<'a> {
+    driver: PhantomData<&'a Driver>,
     baseurl: Url,
     client: Client,
     session_id: String,
+    drop_session: bool,
 }
 
-impl<T> DriverSession<T> where T: Driver {
-    pub fn new(driver: T) -> Result<Self,Error> {
-        let mut s = try!(Self::for_url(driver.url()));
-        s.driver = Some(driver);
-        Ok(s)
-    }
-}
-
-impl<T> DriverSession<T> {
-    /// Connect to an existing WebDriver
-    pub fn for_url(url: &str) -> Result<Self, Error> {
+impl<'a> DriverSession<'a> {
+    pub fn create_session(url: &str) -> Result<DriverSession<'a>, Error> {
         let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
         let mut s = DriverSession {
-            driver: None,
+            driver: PhantomData,
             baseurl: baseurl,
             client: Client::new(),
             session_id: String::new(),
+            drop_session: true,
         };
         info!("Creating session at {}", url);
         let sess = try!(s.new_session(&NewSessionCmd::new()));
@@ -112,25 +113,36 @@ impl<T> DriverSession<T> {
         Ok(s)
     }
 
-    /// Connect to an existing WebDriver session
-    pub fn for_session(url: &str, session_id: &str) -> Result<Self, Error> {
+    /// Use an existing session
+    pub fn attach(url: &str, session_id: &str) -> Result<DriverSession<'a>, Error> {
         let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
         let s = DriverSession {
-            driver: None,
+            driver: PhantomData,
             baseurl: baseurl,
             client: Client::new(),
             session_id: session_id.to_owned(),
+            drop_session: true,
         };
         info!("Connecting to session at {} with id {}", url, session_id);
+
+        // FIXME /status would be preferable here to test the connection, but
+        // it does not seem to work for the current geckodriver
+
         // We can fetch any value for the session to verify it exists.
         // The page URL will work.
-        s.get_current_url()?;
+        let _ = s.get_current_url()?;
+
         info!("Connected to existing session {}", s.session_id);
         Ok(s)
     }
 
     pub fn session_id(&self) -> &str {
         &self.session_id
+    }
+
+    /// Whether to remove the session on Drop, the default is true
+    pub fn drop_session(&mut self, drop: bool) {
+        self.drop_session = drop;
     }
 
     fn get<D: DeserializeOwned + Debug>(&self, path: &str) -> Result<D, Error> {
@@ -248,13 +260,13 @@ impl<T> DriverSession<T> {
         Ok(v.value)
     }
 
-    pub fn find_element(&self, selector: &str, strategy: LocationStrategy) -> Result<Element<T>, Error> {
+    pub fn find_element(&self, selector: &str, strategy: LocationStrategy) -> Result<Element, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector};
         let v: Value<ElementReference> = try!(self.post(&format!("/session/{}/element", self.session_id), &cmd));
         Ok(Element::new(self, v.value.reference))
     }
 
-    pub fn find_elements(&self, selector: &str, strategy: LocationStrategy) -> Result<Vec<Element<T>>, Error> {
+    pub fn find_elements(&self, selector: &str, strategy: LocationStrategy) -> Result<Vec<Element>, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector};
         let mut v: Value<Vec<ElementReference>> = try!(self.post(&format!("/session/{}/elements", self.session_id), &cmd));
 
@@ -281,19 +293,21 @@ impl<T> DriverSession<T> {
     }
 }
 
-impl<T> Drop for DriverSession<T> {
+impl<'a> Drop for DriverSession<'a> {
     fn drop(&mut self) {
-        let _: Result<Empty,_> = self.delete(&format!("/session/{}", self.session_id));
+        if self.drop_session {
+            let _: Result<Empty,_> = self.delete(&format!("/session/{}", self.session_id));
+        }
     }
 }
 
-pub struct Element<'a, T: 'a> {
-    session: &'a DriverSession<T>,
+pub struct Element<'a> {
+    session: &'a DriverSession<'a>,
     reference: String,
 }
 
-impl<'a, T> Element<'a, T> {
-    fn new(s: &'a DriverSession<T>, reference: String) -> Self {
+impl<'a> Element<'a> {
+    fn new(s: &'a DriverSession, reference: String) -> Self {
         Element { session: s, reference: reference }
     }
 
@@ -352,18 +366,18 @@ impl<'a, T> Element<'a, T> {
 ///
 /// This structure implements Drop, and restores the session context
 /// to the current top level window.
-pub struct FrameContext<'a, T: 'a> {
-    session: &'a DriverSession<T>,
+pub struct FrameContext<'a> {
+    session: &'a DriverSession<'a>,
 }
 
-impl<'a, T> FrameContext<'a, T> {
-    pub fn new(session: &DriverSession<T>, frameref: JsonValue) -> Result<FrameContext<T>, Error> {
+impl<'a> FrameContext<'a> {
+    pub fn new(session: &'a DriverSession, frameref: JsonValue) -> Result<FrameContext<'a>, Error> {
         session.switch_to_frame(frameref)?;
         Ok(FrameContext { session: session })
     }
 }
 
-impl<'a, T> Drop for FrameContext<'a, T> {
+impl<'a> Drop for FrameContext<'a> {
     fn drop(&mut self) {
         let _ = self.session.switch_to_frame(JsonValue::Null);
     }
