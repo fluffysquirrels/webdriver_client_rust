@@ -1,8 +1,12 @@
 [package]
 name = "webdriver_client"
+description = "WebDriver client library"
+license = "ISC"
 version = "0.1.0"
 authors = ["raf",
            "Alex Helfet <alex.helfet@gmail.com>"]
+repository = "https://github.com/fluffysquirrels/webdriver_client_rust"
+documentation = "https://docs.rs/webdriver_client"
 
 [dependencies]
 hyper = "^0.10"
