@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 //! A library to drive web browsers using the webdriver
 //! interface.
 
