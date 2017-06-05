@@ -175,17 +175,16 @@ impl DriverSession {
     {
         let baseurl = Url::parse(driver.url())
                           .map_err(|_| Error::InvalidUrl)?;
-        let mut s = DriverSession {
+        let client = HttpClient::new(baseurl);
+        info!("Creating session at {}", client.baseurl);
+        let sess = try!(Self::new_session(&client, &NewSessionCmd::new()));
+        info!("Session {} created", sess.sessionId);
+        Ok(DriverSession {
             driver: driver,
-            client: HttpClient::new(baseurl),
-            session_id: String::new(),
+            client: client,
+            session_id: sess.sessionId,
             drop_session: true,
-        };
-        info!("Creating session at {}", s.client.baseurl);
-        let sess = try!(s.new_session(&NewSessionCmd::new()));
-        s.session_id = sess.sessionId;
-        info!("Session {} created", s.session_id);
-        Ok(s)
+        })
     }
 
     /// Use an existing session
@@ -223,8 +222,8 @@ impl DriverSession {
     }
 
     /// Create a new webdriver session
-    fn new_session(&mut self, params: &NewSessionCmd) -> Result<Session, Error> {
-        let resp: Value<Session> = try!(self.client.post("/session", &params));
+    fn new_session(client: &HttpClient, params: &NewSessionCmd) -> Result<Session, Error> {
+        let resp: Value<Session> = try!(client.post("/session", &params));
         Ok(resp.value)
     }
 
