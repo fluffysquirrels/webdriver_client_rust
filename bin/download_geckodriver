@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -ex
+
+script_dir=$( cd $(dirname ${BASH_SOURCE[0]}); pwd )
+
+curl -sSL https://github.com/mozilla/geckodriver/releases/download/v0.16.1/geckodriver-v0.16.1-linux64.tar.gz -o ${script_dir}/geckodriver-v0.16.1-linux64.tar.gz
+tar -C ${script_dir} -xzf ${script_dir}/geckodriver-v0.16.1-linux64.tar.gz

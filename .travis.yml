@@ -16,8 +16,8 @@ before_script:
   - export DISPLAY=:99.0
   - which firefox
   # install geckodriver
-  - cargo install geckodriver
-  - export PATH=$PATH:$HOME/.cargo/bin
+  - bin/download_geckodriver
+  - export PATH=$PATH:$HOME/.cargo/bin:$PWD/bin
   - which geckodriver
 script:
   - RUST_LOG="webdriver=trace" cargo test --verbose
