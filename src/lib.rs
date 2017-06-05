@@ -193,11 +193,13 @@ impl DriverSession {
             url: url.to_owned(),
         });
         let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
-        let s = DriverSession {
+        let mut s = DriverSession {
             driver: driver,
             client: HttpClient::new(baseurl),
             session_id: session_id.to_owned(),
-            drop_session: true,
+            // This starts as false to avoid triggering the deletion call in Drop
+            // if an error occurs
+            drop_session: false,
         };
         info!("Connecting to session at {} with id {}", url, session_id);
 
@@ -209,6 +211,8 @@ impl DriverSession {
         let _ = s.get_current_url()?;
 
         info!("Connected to existing session {}", s.session_id);
+        // The session exists, enable session deletion on Drop
+        s.drop_session = true;
         Ok(s)
     }
 
