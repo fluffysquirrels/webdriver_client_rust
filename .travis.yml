@@ -20,4 +20,4 @@ before_script:
   - export PATH=$PATH:$HOME/.cargo/bin
   - which geckodriver
 script:
-  - cargo test --verbose
+  - RUST_LOG="webdriver=trace" cargo test --verbose
