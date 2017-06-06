@@ -9,6 +9,8 @@ use env_logger::{LogBuilder, LogTarget};
 use log::LogLevelFilter;
 use std::env;
 use std::sync::{Once, ONCE_INIT};
+use std::thread::sleep;
+use std::time::Duration;
 use webdriver_client::{Driver, HttpDriverBuilder};
 use webdriver_client::firefox::GeckoDriver;
 use webdriver_client::messages::ExecuteCmd;
@@ -91,6 +93,14 @@ fn test_http_driver() {
     let gecko = GeckoDriver::build()
         .firefox_binary("/usr/bin/firefox")
         .spawn().unwrap();
+
+    // Hackily sleep a bit until geckodriver is ready, otherwise our session
+    // will fail to connect.
+    // If this is unreliable, we could try:
+    //   * Polling for the TCP port to become unavailable.
+    //   * Wait for geckodriver to log "Listening on 127.0.0.1:4444".
+    sleep(Duration::from_millis(1000));
+
     let http_driver = HttpDriverBuilder::default()
                                         .url(gecko.url().to_owned())
                                         .build().unwrap();
@@ -101,8 +111,6 @@ fn test_http_driver() {
     let url = sess.get_current_url().unwrap();
     assert_eq!(url, test_url);
 }
-
-
 
 fn ensure_logging_init() {
     static DONE: Once = ONCE_INIT;
