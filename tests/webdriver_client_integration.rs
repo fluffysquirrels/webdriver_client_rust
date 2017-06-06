@@ -102,7 +102,7 @@ fn test_http_driver() {
     sleep(Duration::from_millis(1000));
 
     let http_driver = HttpDriverBuilder::default()
-                                        .url(gecko.url().to_owned())
+                                        .url(gecko.url())
                                         .build().unwrap();
     let sess = http_driver.session().unwrap();
 

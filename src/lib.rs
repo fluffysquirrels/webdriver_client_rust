@@ -89,6 +89,7 @@ pub trait Driver {
 #[derive(Builder)]
 #[builder(field(private))]
 pub struct HttpDriver {
+    #[builder(setter(into))]
     url: String,
 }
 
