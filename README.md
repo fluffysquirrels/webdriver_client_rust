@@ -24,4 +24,6 @@ bin/download_geckodriver
 export PATH=$PATH:$PWD/bin
 ```
 
+--------
+
 This fork is based on equalsraf's excellent work from <https://github.com/equalsraf/webdriver>.
