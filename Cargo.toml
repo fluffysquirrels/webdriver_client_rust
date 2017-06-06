@@ -9,6 +9,7 @@ repository = "https://github.com/fluffysquirrels/webdriver_client_rust"
 documentation = "https://docs.rs/webdriver_client"
 
 [dependencies]
+derive_builder = "^0.4.7"
 hyper = "^0.10"
 serde = "^1.0"
 serde_json = "^1.0"

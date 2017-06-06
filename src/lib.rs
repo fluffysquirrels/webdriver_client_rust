@@ -7,7 +7,6 @@ use std::convert::From;
 use std::io::Read;
 use std::io;
 use std::fmt::{self, Debug};
-use std::marker::PhantomData;
 
 extern crate hyper;
 use hyper::client::*;
@@ -26,7 +25,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate log;
 
-
+#[macro_use]
+extern crate derive_builder;
 
 extern crate rand;
 
@@ -80,33 +80,48 @@ pub trait Driver {
     /// The url used to connect to this driver
     fn url(&self) -> &str;
     /// Start a session for this driver
-    fn session<'a>(&'a self) -> Result<DriverSession<'a>, Error> {
-        DriverSession::create_session(self.url())
+    fn session(self) -> Result<DriverSession, Error> where Self : Sized + 'static {
+        DriverSession::create_session(Box::new(self))
     }
+}
+
+/// A driver using a pre-existing WebDriver HTTP URL.
+#[derive(Builder)]
+#[builder(field(private))]
+pub struct HttpDriver {
+    url: String,
+}
+
+impl Driver for HttpDriver {
+    fn url(&self) -> &str { &self.url }
 }
 
 /// A WebDriver session.
 ///
 /// By default the session is removed on `Drop`
-pub struct DriverSession<'a> {
-    driver: PhantomData<&'a Driver>,
+pub struct DriverSession {
+    driver: Box<Driver>,
     baseurl: Url,
     client: Client,
     session_id: String,
     drop_session: bool,
 }
 
-impl<'a> DriverSession<'a> {
-    pub fn create_session(url: &str) -> Result<DriverSession<'a>, Error> {
-        let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
+impl DriverSession {
+    /// Create a new session with the driver.
+    pub fn create_session(driver: Box<Driver>)
+    -> Result<DriverSession, Error>
+    {
+        let baseurl = Url::parse(driver.url())
+                          .map_err(|_| Error::InvalidUrl)?;
         let mut s = DriverSession {
-            driver: PhantomData,
+            driver: driver,
             baseurl: baseurl,
             client: Client::new(),
             session_id: String::new(),
             drop_session: true,
         };
-        info!("Creating session at {}", url);
+        info!("Creating session at {}", s.baseurl);
         let sess = try!(s.new_session(&NewSessionCmd::new()));
         s.session_id = sess.sessionId;
         info!("Session {} created", s.session_id);
@@ -114,10 +129,13 @@ impl<'a> DriverSession<'a> {
     }
 
     /// Use an existing session
-    pub fn attach(url: &str, session_id: &str) -> Result<DriverSession<'a>, Error> {
+    pub fn attach(url: &str, session_id: &str) -> Result<DriverSession, Error> {
+        let driver = Box::new(HttpDriver {
+            url: url.to_owned(),
+        });
         let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
         let s = DriverSession {
-            driver: PhantomData,
+            driver: driver,
             baseurl: baseurl,
             client: Client::new(),
             session_id: session_id.to_owned(),
@@ -293,7 +311,7 @@ impl<'a> DriverSession<'a> {
     }
 }
 
-impl<'a> Drop for DriverSession<'a> {
+impl Drop for DriverSession {
     fn drop(&mut self) {
         if self.drop_session {
             let _: Result<Empty,_> = self.delete(&format!("/session/{}", self.session_id));
@@ -302,7 +320,7 @@ impl<'a> Drop for DriverSession<'a> {
 }
 
 pub struct Element<'a> {
-    session: &'a DriverSession<'a>,
+    session: &'a DriverSession,
     reference: String,
 }
 
@@ -367,7 +385,7 @@ impl<'a> Element<'a> {
 /// This structure implements Drop, and restores the session context
 /// to the current top level window.
 pub struct FrameContext<'a> {
-    session: &'a DriverSession<'a>,
+    session: &'a DriverSession,
 }
 
 impl<'a> FrameContext<'a> {

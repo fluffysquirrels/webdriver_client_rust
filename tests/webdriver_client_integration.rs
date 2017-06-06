@@ -5,16 +5,17 @@ extern crate log;
 extern crate serde_json;
 extern crate webdriver_client;
 
-use env_logger::LogBuilder;
+use env_logger::{LogBuilder, LogTarget};
 use log::LogLevelFilter;
 use std::env;
-use webdriver_client::Driver;
+use std::sync::{Once, ONCE_INIT};
+use webdriver_client::{Driver, HttpDriverBuilder};
 use webdriver_client::firefox::GeckoDriver;
 use webdriver_client::messages::ExecuteCmd;
 
 #[test]
 fn test_file() {
-    init_logging();
+    ensure_logging_init();
 
     // TODO: Perhaps calculate path from PATH environment variable.
     let gecko = GeckoDriver::build()
@@ -22,12 +23,7 @@ fn test_file() {
         .spawn().unwrap();
     let sess = gecko.session().unwrap();
 
-    // `cargo test` starts with current directory set to the crate root.
-    let crate_root =
-        std::env::current_dir().unwrap()
-        .to_str().unwrap().to_owned();
-    let test_url = format!("file://{crate}/tests/integration_test.html", crate = crate_root);
-
+    let test_url = get_integration_test_url();
     sess.go(&test_url).unwrap();
     let url = sess.get_current_url().unwrap();
     assert_eq!(url, test_url);
@@ -87,15 +83,50 @@ fn test_file() {
     // sess.close_window().unwrap();
 }
 
+#[test]
+fn test_http_driver() {
+    ensure_logging_init();
+
+    // TODO: Perhaps calculate path from PATH environment variable.
+    let gecko = GeckoDriver::build()
+        .firefox_binary("/usr/bin/firefox")
+        .spawn().unwrap();
+    let http_driver = HttpDriverBuilder::default()
+                                        .url(gecko.url().to_owned())
+                                        .build().unwrap();
+    let sess = http_driver.session().unwrap();
+
+    let test_url = get_integration_test_url();
+    sess.go(&test_url).unwrap();
+    let url = sess.get_current_url().unwrap();
+    assert_eq!(url, test_url);
+}
+
+
+
+fn ensure_logging_init() {
+    static DONE: Once = ONCE_INIT;
+    DONE.call_once(|| init_logging());
+}
 fn init_logging() {
     let mut builder = LogBuilder::new();
     builder.filter(None, LogLevelFilter::Info);
+    builder.target(LogTarget::Stdout);
 
     if let Ok(ev) = env::var("RUST_LOG") {
        builder.parse(&ev);
     }
 
     builder.init().unwrap();
+}
+
+fn get_integration_test_url() -> String {
+    // `cargo test` starts test binary with current directory set to
+    // the crate root.
+    let crate_root =
+        std::env::current_dir().unwrap()
+        .to_str().unwrap().to_owned();
+    format!("file://{crate}/tests/integration_test.html", crate = crate_root)
 }
 
 mod youtube_integration_test {
