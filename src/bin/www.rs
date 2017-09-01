@@ -7,6 +7,9 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+extern crate clap;
+use clap::{App, Arg};
+
 fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), Error> {
     match name {
         "back" => try!(sess.back()),
@@ -51,10 +54,24 @@ fn execute(line: &str, sess: &DriverSession) -> Result<(), Error>{
 }
 
 fn main() {
-    let gecko = GeckoDriver::spawn()
-        .expect("Unable to start geckodriver");
-    let sess = gecko.session()
-        .expect("Unable to start WebDriver session");
+    let matches = App::new("www")
+        .arg(Arg::with_name("attach-to")
+             .help("Attach to a running webdriver")
+             .value_name("URL")
+             .takes_value(true))
+        .get_matches();
+
+    let sess = match matches.value_of("attach-to") {
+        Some(url) => HttpDriverBuilder::default()
+            .url(url)
+            .build().unwrap()
+            .session()
+            .expect("Unable to attach to WebDriver session"),
+        None => GeckoDriver::spawn()
+            .expect("Unable to start geckodriver")
+            .session()
+            .expect("Unable to start Geckodriver session"),
+    };
 
     let mut rl = Editor::<()>::new();
     loop {
