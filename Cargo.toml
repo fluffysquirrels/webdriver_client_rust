@@ -13,7 +13,7 @@ keywords = ["webdriver", "testing", "browser"]
 travis-ci = { repository = "fluffysquirrels/webdriver_client_rust" }
 
 [dependencies]
-derive_builder = "^0.4.7"
+derive_builder = "^0.5"
 hyper = "^0.10"
 serde = "^1.0"
 serde_json = "^1.0"
@@ -35,3 +35,9 @@ shell = ["rustyline"]
 name = "www"
 path = "src/bin/www.rs"
 required-features = ["shell"]
+
+# Use a pre-release version of derive_builder that fixes issue
+# <https://github.com/colin-kiegel/rust-derive-builder/issues/104>
+[patch.crates-io.derive_builder]
+git = "https://github.com/colin-kiegel/rust-derive-builder"
+rev = "2585c5b1cbfacfc3450deafb0e3df6055da38bf7"
