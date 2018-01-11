@@ -5,6 +5,7 @@ use serde::de::{Visitor, MapAccess};
 use serde::de::Error as DeError;
 use serde::ser::SerializeStruct;
 use serde_json::Value as JsonValue;
+use serde_json::map::Map;
 use std::fmt;
 
 #[derive(Debug)]
@@ -35,13 +36,15 @@ pub struct WebDriverError {
 
 #[derive(Serialize)]
 pub struct NewSessionCmd {
-    required: JsonValue,
+    capabilities: JsonValue,
+    desiredCapabilities: JsonValue,
 }
 
 impl NewSessionCmd {
     pub fn new() -> Self {
         NewSessionCmd {
-            required: JsonValue::Null,
+            capabilities: JsonValue::Object(Map::new()),
+            desiredCapabilities: JsonValue::Object(Map::new()),
         }
     }
 
