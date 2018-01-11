@@ -10,6 +10,8 @@ use rustyline::Editor;
 extern crate clap;
 use clap::{App, Arg};
 
+extern crate stderrlog;
+
 fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), Error> {
     match name {
         "back" => try!(sess.back()),
@@ -59,7 +61,17 @@ fn main() {
              .help("Attach to a running webdriver")
              .value_name("URL")
              .takes_value(true))
+        .arg(Arg::with_name("verbose")
+             .short("v")
+             .multiple(true)
+             .help("Increases verbose"))
         .get_matches();
+
+    stderrlog::new()
+        .module("webdriver_client")
+        .verbosity(matches.occurrences_of("verbose") as usize)
+        .init()
+        .expect("Unable to initialize logging in stderr");
 
     let sess = match matches.value_of("attach-to") {
         Some(url) => HttpDriverBuilder::default()
