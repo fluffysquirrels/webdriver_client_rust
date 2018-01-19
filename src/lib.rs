@@ -302,13 +302,9 @@ impl DriverSession {
 
     pub fn find_elements(&self, selector: &str, strategy: LocationStrategy) -> Result<Vec<Element>, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector};
-        let mut v: Value<Vec<ElementReference>> = try!(self.client.post(&format!("/session/{}/elements", self.session_id), &cmd));
+        let v: Value<Vec<ElementReference>> = try!(self.client.post(&format!("/session/{}/elements", self.session_id), &cmd));
 
-        let mut elems = Vec::new();
-        while let Some(er) = v.value.pop() {
-            elems.push(Element::new(self, er.reference))
-        }
-        Ok(elems)
+        Ok(v.value.into_iter().map(|er| Element::new(self, er.reference)).collect())
     }
 
     pub fn execute(&self, script: ExecuteCmd) -> Result<JsonValue, Error> {
