@@ -152,13 +152,15 @@ fn find_elements_by_xpath() {
 }
 
 #[test]
-fn element_attribute() {
+fn element_attribute_and_property() {
     let (server, sess) = setup();
     let page1 = server.url("/page1.html");
+    let page2 = server.url("/page2.html");
 
     sess.go(&page1).expect("Error going to page1");
     let link = sess.find_element("#link_to_page_2", LocationStrategy::Css).expect("Error finding element");
     assert_eq!(&link.attribute("href").expect("Error getting attribute"), "/page2.html");
+    assert_eq!(&link.property("href").expect("Error getting property"), &page2);
 }
 
 #[test]
