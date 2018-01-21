@@ -143,7 +143,7 @@ fn find_elements_by_xpath() {
     let (server, sess) = setup();
     let page1 = server.url("/page1.html");
     sess.go(&page1).expect("Error going to page1");
-    let elements = sess.find_elements("//span", LocationStrategy::XPath).expect("Error finding elements");
+    let elements = sess.find_elements("//body/span", LocationStrategy::XPath).expect("Error finding elements");
     let element_texts: Vec<String> = elements.into_iter().map(|elem| elem.text().expect("Error getting text")).collect();
     assert_eq!(element_texts, vec!["Red text".to_owned(), "More red text".to_owned()], "Wrong element texts");
 
@@ -186,6 +186,31 @@ fn element_name() {
     sess.go(&page1).expect("Error going to page1");
     let element = sess.find_element("span.red", LocationStrategy::Css).expect("Error finding element");
     assert_eq!(&element.name().expect("Error getting name"), "span");
+}
+
+#[test]
+fn element_child() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("#parent", LocationStrategy::Css).expect("Error finding parent element");
+
+    let child_by_css = element.find_element("span", LocationStrategy::Css).expect("Error finding child by CSS");
+    assert_eq!(&child_by_css.attribute("id").expect("Error getting id [1]"), "child1");
+
+    let child_by_xpath = element.find_element(".//span", LocationStrategy::XPath).expect("Error finding child by XPath");
+    assert_eq!(&child_by_xpath.attribute("id").expect("Error getting id [2]"), "child1");
+}
+
+#[test]
+fn element_children() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("#parent", LocationStrategy::Css).expect("Error finding parent element");
+
+    let children = element.find_elements("span", LocationStrategy::Css).expect("Error finding children by CSS");
+    assert_eq!(children.iter().map(|e| e.attribute("id").expect("Error getting id")).collect::<Vec<_>>(), vec!["child1".to_owned(), "child2".to_owned()]);
 }
 
 #[test]
