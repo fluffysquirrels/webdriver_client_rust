@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -ex;
+
+# A simple build script to run locally before pushing.
+
+CRATE_DIR=$( cd $(dirname ${BASH_SOURCE[0]})/..; pwd )
+
+for TC in nightly stable beta; do
+    TC="${TC}" ${CRATE_DIR}/bin/build_tc
+done

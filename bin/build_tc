@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -e;
+
+# Run a build with a given toolchain.
+TC=${TC?Supply a toolchain in this environment variable}
+
+echo "Rust toolchain: ${TC}"
+
+CRATE_DIR=$( cd $(dirname ${BASH_SOURCE[0]})/..; pwd )
+export CARGO_TARGET_DIR="${CRATE_DIR}/target/build_local/${TC}"
+
+set -x;
+
+rustup toolchain update ${TC};
+
+cd ${CRATE_DIR};
+
+cargo +${TC} build -p webdriver_client --verbose;
+cargo +${TC} test -p webdriver_client --verbose;

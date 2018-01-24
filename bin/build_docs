@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -ex
+
+CRATE_DIR=$( cd $(dirname ${BASH_SOURCE[0]})/..; pwd )
+
+rustup toolchain update nightly;
+
+export CARGO_TARGET_DIR="${CRATE_DIR}/target/doc";
+cargo +nightly doc -p webdriver_client --verbose --no-deps;

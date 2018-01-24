@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -ex
+
+CRATE_DIR=$( cd $(dirname ${BASH_SOURCE[0]})/..; pwd )
+
+TC=nightly
+
+rustup toolchain update ${TC};
+cargo +${TC} publish --verbose --manifest-path ${CRATE_DIR}/Cargo.toml;
