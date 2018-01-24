@@ -3,7 +3,7 @@ set -ex
 
 CRATE_DIR=$( cd $(dirname ${BASH_SOURCE[0]})/..; pwd )
 
-TC=nightly
+TC=stable
 
 rustup toolchain update ${TC};
 cargo +${TC} publish --verbose --manifest-path ${CRATE_DIR}/Cargo.toml;
