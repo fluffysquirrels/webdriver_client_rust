@@ -1,6 +1,8 @@
 language: rust
 rust:
   - stable
+  - beta
+  - nightly
 addons:
   # Force the latest firefox, otherwise we get and old ESR version
   # that we dont even support
