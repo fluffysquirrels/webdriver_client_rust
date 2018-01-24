@@ -6,11 +6,13 @@ version = "0.1.0"
 authors = ["raf",
            "Alex Helfet <alex.helfet@gmail.com>"]
 repository = "https://github.com/fluffysquirrels/webdriver_client_rust"
-documentation = "https://docs.rs/webdriver_client"
 keywords = ["webdriver", "testing", "browser"]
+categories = ["api-bindings", "development-tools", "web-programming"]
+readme="README.md"
 
-[badges]
-travis-ci = { repository = "fluffysquirrels/webdriver_client_rust" }
+[badges.travis-ci]
+repository = "fluffysquirrels/webdriver_client_rust"
+branch = "master"
 
 [dependencies]
 derive_builder = "^0.5.1"
