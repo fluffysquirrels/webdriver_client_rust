@@ -321,6 +321,8 @@ impl DriverSession {
         Ok(v.value)
     }
 
+    /// Valid values are element references as returned by Element::reference() or null to switch
+    /// to the top level frame
     pub fn switch_to_frame(&self, handle: JsonValue) -> Result<(), Error> {
         let _: Empty = try!(self.client.post(&format!("/session/{}/frame", self.session_id), &SwitchFrameCmd::from(handle)));
         Ok(())
@@ -341,7 +343,7 @@ pub struct Element<'a> {
 }
 
 impl<'a> Element<'a> {
-    fn new(s: &'a DriverSession, reference: String) -> Self {
+    pub fn new(s: &'a DriverSession, reference: String) -> Self {
         Element { session: s, reference: reference }
     }
 
@@ -384,10 +386,15 @@ impl<'a> Element<'a> {
         Ok(v.value.into_iter().map(|er| Element::new(self.session, er.reference)).collect())
     }
 
+    /// Returns a reference that can be passed on to the API
     pub fn reference(&self) -> Result<JsonValue, Error> {
         serde_json::to_value(&ElementReference::from_str(&self.reference))
             .map_err(|err| Error::from(err))
     }
+
+    /// The raw reference id that identifies this element, this can be used
+    /// with Element::new()
+    pub fn raw_reference(&self) -> &str { &self.reference }
 
     /// Gets the `innerHTML` javascript attribute for this element. Some drivers can get
     /// this using regular attributes, in others it does not work. This method gets it

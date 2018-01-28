@@ -30,6 +30,11 @@ fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), 
                 println!("#{} {}", idx, elem.outer_html()?);
             }
         }
+        "frames" => {
+            for (idx, elem) in sess.find_elements("iframe", LocationStrategy::Css)?.iter().enumerate() {
+                println!("#{} {}", idx, elem.raw_reference());
+            }
+        }
         "windows" => {
             for (idx, handle) in sess.get_window_handles()?.iter().enumerate() {
                 println!("#{} {}", idx, handle)
@@ -43,6 +48,14 @@ fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), 
             match sess.execute(script)? {
                 JsonValue::String(ref s) => println!("{}", s),
                 other => println!("{}", other),
+            }
+        }
+        "switchframe" => {
+            let arg = args.trim();
+            if arg.is_empty() {
+                try!(sess.switch_to_frame(JsonValue::Null));
+            } else {
+                try!(sess.switch_to_frame(try!(Element::new(sess, arg.to_string()).reference())));
             }
         }
         _ => println!("Unknown function: \"{}\"", name),
