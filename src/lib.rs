@@ -35,7 +35,9 @@ pub mod messages;
 use messages::*;
 pub use messages::LocationStrategy;
 
+mod util;
 pub mod firefox;
+pub mod chrome;
 
 #[derive(Debug)]
 pub enum Error {

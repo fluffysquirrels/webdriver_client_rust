@@ -2,6 +2,7 @@ extern crate webdriver_client;
 use webdriver_client::*;
 use webdriver_client::messages::{LocationStrategy, ExecuteCmd};
 use webdriver_client::firefox::GeckoDriver;
+use webdriver_client::chrome::ChromeDriver;
 
 extern crate rustyline;
 use rustyline::error::ReadlineError;
@@ -61,6 +62,12 @@ fn main() {
              .help("Attach to a running webdriver")
              .value_name("URL")
              .takes_value(true))
+        .arg(Arg::with_name("driver")
+             .short("D")
+             .long("driver")
+             .possible_values(&["geckodriver", "chromedriver"])
+             .default_value("geckodriver")
+             .takes_value(true))
         .arg(Arg::with_name("verbose")
              .short("v")
              .multiple(true)
@@ -79,10 +86,24 @@ fn main() {
             .build().unwrap()
             .session()
             .expect("Unable to attach to WebDriver session"),
-        None => GeckoDriver::spawn()
-            .expect("Unable to start geckodriver")
-            .session()
-            .expect("Unable to start Geckodriver session"),
+        None => match matches.value_of("driver").unwrap() {
+            "geckodriver" => {
+                GeckoDriver::spawn()
+                    .expect("Unable to start geckodriver")
+                    .session()
+                    .expect("Unable to start Geckodriver session")
+            }
+            "chromedriver" => {
+                ChromeDriver::spawn()
+                    .expect("Unable to start chromedriver")
+                    .session()
+                    .expect("Unable to start chromedriver session")
+            }
+            unsupported => {
+                // should be unreachable see Arg::possible_values()
+                panic!("Unsupported driver: {}", unsupported);
+            }
+        }
     };
 
     let mut rl = Editor::<()>::new();
