@@ -43,7 +43,14 @@ pub struct NewSessionCmd {
 impl NewSessionCmd {
     pub fn new() -> Self {
         NewSessionCmd {
-            capabilities: JsonValue::Object(Map::new()),
+            capabilities: json!({
+                "alwaysMatch": {
+                    // ask chrome to be w3c compliant
+                    "goog:chromeOptions": {
+                        "w3c": true
+                    }
+                }
+            }),
             desiredCapabilities: JsonValue::Object(Map::new()),
         }
     }

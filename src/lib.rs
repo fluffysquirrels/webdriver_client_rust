@@ -16,6 +16,7 @@ extern crate serde;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
+#[macro_use]
 extern crate serde_json;
 pub use serde_json::Value as JsonValue;
 
