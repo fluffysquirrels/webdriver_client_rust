@@ -97,19 +97,19 @@ fn main() {
         Some(url) => HttpDriverBuilder::default()
             .url(url)
             .build().unwrap()
-            .session()
+            .session(&Default::default())
             .expect("Unable to attach to WebDriver session"),
         None => match matches.value_of("driver").unwrap() {
             "geckodriver" => {
                 GeckoDriver::spawn()
                     .expect("Unable to start geckodriver")
-                    .session()
+                    .session(&Default::default())
                     .expect("Unable to start Geckodriver session")
             }
             "chromedriver" => {
                 ChromeDriver::spawn()
                     .expect("Unable to start chromedriver")
-                    .session()
+                    .session(&Default::default())
                     .expect("Unable to start chromedriver session")
             }
             unsupported => {
