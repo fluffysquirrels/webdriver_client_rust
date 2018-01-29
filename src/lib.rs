@@ -84,8 +84,8 @@ pub trait Driver {
     /// The url used to connect to this driver
     fn url(&self) -> &str;
     /// Start a session for this driver
-    fn session(self) -> Result<DriverSession, Error> where Self : Sized + 'static {
-        DriverSession::create_session(Box::new(self))
+    fn session(self, params: &NewSessionCmd) -> Result<DriverSession, Error> where Self : Sized + 'static {
+        DriverSession::create_session(Box::new(self), params)
     }
 }
 
@@ -174,14 +174,14 @@ pub struct DriverSession {
 
 impl DriverSession {
     /// Create a new session with the driver.
-    pub fn create_session(driver: Box<Driver>)
+    pub fn create_session(driver: Box<Driver>, params: &NewSessionCmd)
     -> Result<DriverSession, Error>
     {
         let baseurl = Url::parse(driver.url())
                           .map_err(|_| Error::InvalidUrl)?;
         let client = HttpClient::new(baseurl);
         info!("Creating session at {}", client.baseurl);
-        let sess = try!(Self::new_session(&client, &NewSessionCmd::new()));
+        let sess = try!(Self::new_session(&client, params));
         info!("Session {} created", sess.sessionId);
         Ok(DriverSession {
             driver: driver,

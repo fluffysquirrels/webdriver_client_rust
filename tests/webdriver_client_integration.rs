@@ -326,7 +326,7 @@ fn test_http_driver() {
     let http_driver = HttpDriverBuilder::default()
                                         .url(gecko.url())
                                         .build().unwrap();
-    let sess = http_driver.session().unwrap();
+    let sess = http_driver.session(&Default::default()).unwrap();
 
     let server = FileServer::new();
     let test_url = server.url("/page1.html");
@@ -446,7 +446,7 @@ fn setup() -> (FileServer, DriverSession) {
 
     let gecko = GeckoDriver::build()
         .spawn().expect("Error starting geckodriver");
-    let session = gecko.session().expect("Error starting session");
+    let session = gecko.session(&Default::default()).expect("Error starting session");
 
     let server = FileServer::new();
 
