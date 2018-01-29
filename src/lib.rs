@@ -32,6 +32,7 @@ extern crate rand;
 
 pub mod messages;
 use messages::*;
+pub use messages::LocationStrategy;
 
 pub mod firefox;
 
@@ -389,6 +390,12 @@ impl<'a> Element<'a> {
             args: vec![self.reference()?],
         };
         self.session.execute(script)
+    }
+}
+
+impl<'a> fmt::Debug for Element<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "WebDriver Element with remote reference {}", self.reference)
     }
 }
 

@@ -3,6 +3,7 @@
 extern crate env_logger;
 extern crate hyper;
 extern crate log;
+#[macro_use]
 extern crate serde_json;
 extern crate webdriver_client;
 
@@ -14,74 +15,219 @@ use std::path::PathBuf;
 use std::sync::{Once, ONCE_INIT};
 use std::thread::sleep;
 use std::time::Duration;
-use webdriver_client::{Driver, DriverSession, HttpDriverBuilder};
+use webdriver_client::{Driver, DriverSession, HttpDriverBuilder, LocationStrategy};
 use webdriver_client::firefox::GeckoDriver;
 use webdriver_client::messages::ExecuteCmd;
 
 #[test]
-fn test_file() {
-    ensure_logging_init();
-
+fn navigation() {
     let (server, sess) = setup();
-    let test_url = server.url("/page1.html");
-    sess.go(&test_url).unwrap();
-    let url = sess.get_current_url().unwrap();
-    assert_eq!(url, test_url);
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    assert_eq!(&sess.get_current_url().expect("Error getting url [1]"), &page1, "Wrong URL [1]");
 
-    let title = sess.get_title().unwrap();
-    assert_eq!(title, "Test page 1 title");
+    let page2 = server.url("/page2.html");
+    sess.go(&page2).expect("Error going to page2");
+    assert_eq!(&sess.get_current_url().expect("Error getting url [2]"), &page2, "Wrong URL [2]");
 
-    sess.back().unwrap();
-    sess.forward().unwrap();
-    sess.refresh().unwrap();
-    sess.get_page_source().unwrap();
+    sess.back().expect("Error going back");
+    assert_eq!(&sess.get_current_url().expect("Error getting url [3]"), &page1, "Wrong URL [3]");
 
-    sess.get_cookies().unwrap();
-    sess.get_window_handle().unwrap();
-    {
-        let handles = sess.get_window_handles().unwrap();
-        assert_eq!(handles.len(), 1);
-    }
-
-    {
-        // Test execute return
-        let exec_json = sess.execute(ExecuteCmd {
-            script: "return 2 + 2;".to_owned(),
-            args: vec![],
-        }).unwrap();
-        let exec_int = serde_json::from_value::<i64>(exec_json).unwrap();
-        assert_eq!(exec_int, 4);
-    }
-
-    {
-        // Test execute handling an exception
-        let exec_res = sess.execute(ExecuteCmd {
-            script: "throw 'SomeException';".to_owned(),
-            args: vec![],
-        });
-        assert!(exec_res.is_err());
-        let err = exec_res.err().unwrap();
-        let err = match err {
-            webdriver_client::Error::WebDriverError(e) => e,
-            _ => panic!("Unexpected error variant: {:#?}", err),
-        };
-        assert_eq!(err.error, "javascript error");
-        assert_eq!(err.message, "SomeException");
-    }
-
-    {
-        // Test execute async
-        let exec_json = sess.execute_async(ExecuteCmd {
-            script: "let resolve = arguments[0];\n\
-                     setTimeout(() => resolve(4), 1000);".to_owned(),
-            args: vec![],
-        }).unwrap();
-        let exec_int = serde_json::from_value::<i64>(exec_json).unwrap();
-        assert_eq!(exec_int, 4);
-    }
-
-    // sess.close_window().unwrap();
+    sess.forward().expect("Error going forward");
+    assert_eq!(&sess.get_current_url().expect("Error getting url [4]"), &page2, "Wrong URL [4]");
 }
+
+#[test]
+fn title() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    assert_eq!(&sess.get_title().expect("Error getting title"), "Test page 1 title", "Wrong title");
+}
+
+#[test]
+fn get_page_source() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let page_source = sess.get_page_source().expect("Error getting page source");
+    assert!(page_source.contains("<html>"), "Want page_source to contain <html> but was {}", page_source);
+    assert!(page_source.contains("<title>Test page 1 title</title>"), "Want page_source to contain <title>Test page 1 title</title> but was {}", page_source);
+}
+
+#[test]
+fn find_element_by_css() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("span.red", LocationStrategy::Css).expect("Error finding element");
+    assert_eq!(element.text().expect("Error getting text"), "Red text", "Wrong element found");
+
+    sess.find_element("body.red", LocationStrategy::Css).expect_err("Want error");
+}
+
+#[test]
+fn find_element_by_link_text() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("A really handy WebDriver crate", LocationStrategy::LinkText).expect("Error finding element");
+    assert_eq!(element.text().expect("Error getting text"), "A really handy WebDriver crate", "Wrong element found");
+
+    sess.find_element("A link with this text does not appear on the page", LocationStrategy::LinkText).expect_err("Want error");
+}
+
+#[test]
+fn find_element_by_partial_link_text() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("crate", LocationStrategy::PartialLinkText).expect("Error finding element");
+    assert_eq!(element.text().expect("Error getting text"), "A really handy WebDriver crate", "Wrong element found");
+
+    sess.find_element("A link with this text does not appear on the page", LocationStrategy::PartialLinkText).expect_err("Want error");
+}
+
+#[test]
+fn find_element_by_xpath() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("//a", LocationStrategy::XPath).expect("Error finding element");
+    assert_eq!(element.text().expect("Error getting text"), "A really handy WebDriver crate", "Wrong element found");
+
+    sess.find_element("//video", LocationStrategy::XPath).expect_err("Want error");
+}
+
+#[test]
+fn find_elements_by_css() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let elements = sess.find_elements("span.red", LocationStrategy::Css).expect("Error finding elements");
+    let element_texts: Vec<String> = elements.into_iter().map(|elem| elem.text().expect("Error getting text")).collect();
+    assert_eq!(element_texts, vec!["Red text".to_owned(), "More red text".to_owned()], "Wrong element texts");
+
+    let found_elements = sess.find_elements("body.red", LocationStrategy::Css).expect("Error finding absent elements");
+    assert!(found_elements.is_empty(), "Want to find no elements, found {:?}", found_elements);
+}
+
+#[test]
+fn find_elements_by_link_text() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let elements = sess.find_elements("A really handy WebDriver crate", LocationStrategy::LinkText).expect("Error finding elements");
+    let element_texts: Vec<String> = elements.into_iter().map(|elem| elem.text().expect("Error getting text")).collect();
+    assert_eq!(element_texts, vec!["A really handy WebDriver crate".to_owned()], "Wrong element texts");
+
+    let found_elements = sess.find_elements("A really bad WebDriver crate", LocationStrategy::LinkText).expect("Error finding absent elements");
+    assert!(found_elements.is_empty(), "Want to find no elements, found {:?}", found_elements);
+}
+
+#[test]
+fn find_elements_by_partial_link_text() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let elements = sess.find_elements("crate", LocationStrategy::PartialLinkText).expect("Error finding elements");
+    let element_texts: Vec<String> = elements.into_iter().map(|elem| elem.text().expect("Error getting text")).collect();
+    assert_eq!(element_texts, vec!["A really handy WebDriver crate".to_owned(), "A WebDriver crate with just the server-side".to_owned()], "Wrong element texts");
+
+    let found_elements = sess.find_elements("A really bad WebDriver crate", LocationStrategy::PartialLinkText).expect("Error finding absent elements");
+    assert!(found_elements.is_empty(), "Want to find no elements, found {:?}", found_elements);
+}
+
+#[test]
+fn find_elements_by_xpath() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let elements = sess.find_elements("//span", LocationStrategy::XPath).expect("Error finding elements");
+    let element_texts: Vec<String> = elements.into_iter().map(|elem| elem.text().expect("Error getting text")).collect();
+    assert_eq!(element_texts, vec!["Red text".to_owned(), "More red text".to_owned()], "Wrong element texts");
+
+    let found_elements = sess.find_elements("//video", LocationStrategy::XPath).expect("Error finding absent elements");
+    assert!(found_elements.is_empty(), "Want to find no elements, found {:?}", found_elements);
+}
+
+#[test]
+fn element_attribute() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+
+    sess.go(&page1).expect("Error going to page1");
+    let link = sess.find_element("#link_to_page_2", LocationStrategy::Css).expect("Error finding element");
+    assert_eq!(&link.attribute("href").expect("Error getting attribute"), "/page2.html");
+}
+
+#[test]
+fn element_css_value() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("span.red", LocationStrategy::Css).expect("Error finding element");
+    assert_eq!(&element.css_value("color").expect("Error getting css value"), "rgb(255, 0, 0)");
+}
+
+#[test]
+fn element_text() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("span.red", LocationStrategy::Css).expect("Error finding element");
+    assert_eq!(&element.text().expect("Error getting text"), "Red text");
+}
+
+#[test]
+fn element_name() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("span.red", LocationStrategy::Css).expect("Error finding element");
+    assert_eq!(&element.name().expect("Error getting name"), "span");
+}
+
+#[test]
+fn execute() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let exec_json = sess.execute(ExecuteCmd {
+        script: "return arguments[0] + arguments[1];".to_owned(),
+        args: vec![json!(1), json!(2)],
+    }).expect("Error executing script");
+    assert_eq!(serde_json::from_value::<i64>(exec_json).expect("Error converting result to i64"), 3);
+
+    let exec_error = sess.execute(ExecuteCmd {
+        script: "throw 'foo';".to_owned(),
+        args: vec![],
+    }).expect_err("Want error");
+    match exec_error {
+        webdriver_client::Error::WebDriverError(err) => assert!(format!("{:?}", err).contains("foo"), "Bad error message: {:?}", err),
+        other => panic!("Wrong error type: {:?}", other),
+    };
+
+}
+
+#[test]
+fn execute_async() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let exec_json = sess.execute_async(ExecuteCmd {
+        script: "setTimeout(() => arguments[1](arguments[0]), 1000);".to_owned(),
+        args: vec![json!(1)],
+    }).unwrap();
+    let exec_int = serde_json::from_value::<i64>(exec_json).unwrap();
+    assert_eq!(exec_int, 1);
+}
+
+// TODO: Test cookies
+
+// TODO: Test window handles
+
+// TODO: Test Frames
 
 #[test]
 fn test_http_driver() {
@@ -112,6 +258,7 @@ fn ensure_logging_init() {
     static DONE: Once = ONCE_INIT;
     DONE.call_once(|| init_logging());
 }
+
 fn init_logging() {
     let mut builder = LogBuilder::new();
     builder.filter(None, LogLevelFilter::Info);
@@ -122,50 +269,6 @@ fn init_logging() {
     }
 
     builder.init().unwrap();
-}
-
-mod youtube_integration_test {
-    use webdriver_client::Driver;
-    use webdriver_client::firefox::GeckoDriver;
-    use webdriver_client::messages::LocationStrategy;
-
-    /// This depends on an external page not under our control, we
-    /// should migrate to using local files.
-    #[test]
-    #[ignore]
-    fn test() {
-        let gecko = GeckoDriver::build()
-            .kill_on_drop(true)
-            .spawn()
-            .unwrap();
-        let mut sess = gecko.session().unwrap();
-        sess.go("https://www.youtube.com/watch?v=dQw4w9WgXcQ").unwrap();
-        sess.get_current_url().unwrap();
-        sess.back().unwrap();
-        sess.forward().unwrap();
-        sess.refresh().unwrap();
-        sess.get_page_source().unwrap();
-
-        {
-            let el = sess.find_element("a", LocationStrategy::Css).unwrap();
-            el.attribute("href").unwrap();
-            el.css_value("color").unwrap();
-            el.text().unwrap();
-            assert_eq!(el.name().unwrap(), "a");
-
-            let imgs = sess.find_elements("img", LocationStrategy::Css).unwrap();
-            for img in &imgs {
-                println!("{}", img.attribute("src").unwrap());
-            }
-
-            sess.get_cookies().unwrap();
-            sess.get_title().unwrap();
-            sess.get_window_handle().unwrap();
-            let handles = sess.get_window_handles().unwrap();
-            assert_eq!(handles.len(), 1);
-        }
-        sess.close_window().unwrap();
-    }
 }
 
 struct FileServer {
