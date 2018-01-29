@@ -1,6 +1,7 @@
 #![deny(warnings)]
 
 extern crate env_logger;
+extern crate hyper;
 extern crate log;
 extern crate serde_json;
 extern crate webdriver_client;
@@ -8,10 +9,12 @@ extern crate webdriver_client;
 use env_logger::{LogBuilder, LogTarget};
 use log::LogLevelFilter;
 use std::env;
+use std::io::Read;
+use std::path::PathBuf;
 use std::sync::{Once, ONCE_INIT};
 use std::thread::sleep;
 use std::time::Duration;
-use webdriver_client::{Driver, HttpDriverBuilder};
+use webdriver_client::{Driver, DriverSession, HttpDriverBuilder};
 use webdriver_client::firefox::GeckoDriver;
 use webdriver_client::messages::ExecuteCmd;
 
@@ -19,19 +22,14 @@ use webdriver_client::messages::ExecuteCmd;
 fn test_file() {
     ensure_logging_init();
 
-    // TODO: Perhaps calculate path from PATH environment variable.
-    let gecko = GeckoDriver::build()
-        .firefox_binary("/usr/bin/firefox")
-        .spawn().unwrap();
-    let sess = gecko.session().unwrap();
-
-    let test_url = get_integration_test_url();
+    let (server, sess) = setup();
+    let test_url = server.url("/page1.html");
     sess.go(&test_url).unwrap();
     let url = sess.get_current_url().unwrap();
     assert_eq!(url, test_url);
 
     let title = sess.get_title().unwrap();
-    assert_eq!(title, "Test page title");
+    assert_eq!(title, "Test page 1 title");
 
     sess.back().unwrap();
     sess.forward().unwrap();
@@ -89,10 +87,7 @@ fn test_file() {
 fn test_http_driver() {
     ensure_logging_init();
 
-    // TODO: Perhaps calculate path from PATH environment variable.
-    let gecko = GeckoDriver::build()
-        .firefox_binary("/usr/bin/firefox")
-        .spawn().unwrap();
+    let gecko = GeckoDriver::build().spawn().unwrap();
 
     // Hackily sleep a bit until geckodriver is ready, otherwise our session
     // will fail to connect.
@@ -106,7 +101,8 @@ fn test_http_driver() {
                                         .build().unwrap();
     let sess = http_driver.session().unwrap();
 
-    let test_url = get_integration_test_url();
+    let server = FileServer::new();
+    let test_url = server.url("/page1.html");
     sess.go(&test_url).unwrap();
     let url = sess.get_current_url().unwrap();
     assert_eq!(url, test_url);
@@ -126,15 +122,6 @@ fn init_logging() {
     }
 
     builder.init().unwrap();
-}
-
-fn get_integration_test_url() -> String {
-    // `cargo test` starts test binary with current directory set to
-    // the crate root.
-    let crate_root =
-        std::env::current_dir().unwrap()
-        .to_str().unwrap().to_owned();
-    format!("file://{crate}/tests/integration_test.html", crate = crate_root)
 }
 
 mod youtube_integration_test {
@@ -179,4 +166,105 @@ mod youtube_integration_test {
         }
         sess.close_window().unwrap();
     }
+}
+
+struct FileServer {
+    listening: hyper::server::Listening,
+    base_url: String,
+}
+
+impl FileServer {
+    pub fn new() -> FileServer {
+        for i in 0..2000 {
+            let port = 8000 + i;
+            let base_url = format!("http://localhost:{}", port);
+            let server = match hyper::Server::http(("localhost", port)) {
+                Ok(server) => server,
+                Err(_) => {
+                    continue;
+                },
+            };
+            match server.handle_threads(FileServer::handle, 10) {
+                Ok(listening) => {
+                    return FileServer {
+                        listening,
+                        base_url,
+                    };
+                },
+                Err(err) => panic!("Error listening: {:?}", err),
+            }
+        }
+        panic!("Could not find free port to serve test pages")
+    }
+
+    pub fn url(&self, path: &str) -> String {
+        format!("{base_url}{path}", base_url = self.base_url, path = path)
+    }
+
+    fn handle(req: hyper::server::Request, mut resp: hyper::server::Response) {
+        match FileServer::handle_impl(&req) {
+            Ok(bytes) => {
+                *resp.status_mut() = hyper::status::StatusCode::Ok;
+                resp.send(&bytes).expect("Failed to send HTTP response");
+            },
+            Err(err) => {
+                eprintln!("{}", err);
+                *resp.status_mut() = hyper::status::StatusCode::BadRequest;
+            },
+        };
+    }
+
+    fn handle_impl(req: &hyper::server::Request) -> Result<Vec<u8>, String> {
+        let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let www_root = crate_root.join("tests").join("www");
+
+        match req.uri {
+            hyper::uri::RequestUri::AbsolutePath(ref path) => {
+                if path.starts_with("/") {
+                    let abs_path = www_root.join(&path[1..]);
+                    let file_path = std::fs::canonicalize(&abs_path);
+                    match file_path {
+                        Ok(realpath) => {
+                            if realpath.starts_with(&www_root) {
+                                let mut contents = Vec::new();
+                                std::fs::File::open(&realpath)
+                                    .and_then(|mut f| f.read_to_end(&mut contents))
+                                    .map_err(|err| format!("Error reading file {:?}: {:?}", realpath, err))?;
+                                return Ok(contents);
+                            } else {
+                                return Err(format!("Rejecting request for path outside of www: {:?}", realpath));
+                            }
+                        },
+                        Err(err) => {
+                            return Err(format!("Error canonicalizing file {:?}: {:?}", abs_path, err));
+                        },
+
+                    }
+                } else {
+                    return Err(format!("Received bad request for path {:?}", path));
+                }
+            },
+            ref path => {
+                return Err(format!("Received request for non-AbsolutePath: {:?}", path));
+            },
+        }
+    }
+}
+
+impl Drop for FileServer {
+    fn drop(&mut self) {
+        self.listening.close().expect("FileServer failed to stop listening");
+    }
+}
+
+fn setup() -> (FileServer, DriverSession) {
+    ensure_logging_init();
+
+    let gecko = GeckoDriver::build()
+        .spawn().expect("Error starting geckodriver");
+    let session = gecko.session().expect("Error starting session");
+
+    let server = FileServer::new();
+
+    (server, session)
 }
