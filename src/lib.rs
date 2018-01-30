@@ -352,6 +352,11 @@ impl<'a> Element<'a> {
         Ok(v.value)
     }
 
+    pub fn clear(&self) -> Result<(), Error> {
+        let _: Value<JsonValue> = try!(self.session.client.post(&format!("/session/{}/element/{}/clear", self.session.session_id(), self.reference), &Empty {}));
+        Ok(())
+    }
+
     pub fn css_value(&self, name: &str) -> Result<String, Error> {
         let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/css/{}", self.session.session_id(), self.reference, name)));
         Ok(v.value)

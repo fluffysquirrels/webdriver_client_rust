@@ -173,6 +173,17 @@ fn element_css_value() {
 }
 
 #[test]
+fn element_clear() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("#textfield", LocationStrategy::Css).expect("Error finding element");
+    assert_eq!(&element.property("value").expect("Error getting value [1]"), "Pre-filled");
+    element.clear().expect("Error clearing element");
+    assert_eq!(&element.property("value").expect("Error getting value [2]"), "");
+}
+
+#[test]
 fn element_text() {
     let (server, sess) = setup();
     let page1 = server.url("/page1.html");
