@@ -23,6 +23,12 @@ export PATH=$PATH:$HOME/.cargo/bin:$crate_dir/bin;
 which firefox;
 which geckodriver;
 
+# Install chromedriver
+bin/download_chromedriver
+export CHROME_BIN=/usr/bin/google-chrome-stable
+export CHROME_HEADLESS=1
+which chromedriver
+
 # Restore old shell options
 if [[ ${shopt_old} != *"x"* ]]; then
     set +x;
