@@ -69,6 +69,11 @@ impl GeckoDriver {
     pub fn build() -> GeckoDriverBuilder {
         GeckoDriverBuilder::new()
     }
+
+    /// Start a session for this driver
+    pub fn session(self) -> Result<DriverSession, Error> where Self : Sized + 'static {
+        DriverSession::create_session(&self.url().to_owned(), self)
+    }
 }
 
 impl Drop for GeckoDriver {
@@ -84,4 +89,3 @@ impl Driver for GeckoDriver {
         &self.url
     }
 }
-

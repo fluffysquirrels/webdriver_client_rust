@@ -1,6 +1,7 @@
 use super::*;
 
 use std::process::{Command, Child, Stdio};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -26,7 +27,7 @@ impl ChromeDriverBuilder {
         self.kill_on_drop = kill;
         self
     }
-    pub fn spawn(self) -> Result<ChromeDriver, Error> {
+    pub fn spawn(self) -> Result<Arc<ChromeDriver>, Error> {
         let port = util::check_tcp_port(self.port)?;
 
         let child = Command::new("chromedriver")
@@ -38,11 +39,11 @@ impl ChromeDriverBuilder {
 
         // TODO: parameterize this
         thread::sleep(Duration::new(1, 500));
-        Ok(ChromeDriver {
+        Ok(Arc::new(ChromeDriver {
             child: child,
             url: format!("http://localhost:{}", port),
             kill_on_drop: self.kill_on_drop,
-        })
+        }))
     }
 }
 
@@ -54,7 +55,7 @@ pub struct ChromeDriver {
 }
 
 impl ChromeDriver {
-    pub fn spawn() -> Result<Self, Error> {
+    pub fn spawn() -> Result<Arc<Self>, Error> {
         ChromeDriverBuilder::new().spawn()
     }
     pub fn build() -> ChromeDriverBuilder {
@@ -70,8 +71,15 @@ impl Drop for ChromeDriver {
     }
 }
 
-impl Driver for ChromeDriver {
+// ChromeDriver supports launching multiple browsers from the same chromedriver process.
+impl Driver for Arc<ChromeDriver> {
     fn url(&self) -> &str {
         &self.url
+    }
+}
+
+impl MultiSessionDriver for Arc<ChromeDriver> {
+    fn session(&self) -> Result<DriverSession, Error> {
+        DriverSession::create_session(self.url(), self.clone())
     }
 }

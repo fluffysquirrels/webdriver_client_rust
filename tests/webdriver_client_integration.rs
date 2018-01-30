@@ -15,7 +15,8 @@ use std::path::PathBuf;
 use std::sync::{Once, ONCE_INIT};
 use std::thread::sleep;
 use std::time::Duration;
-use webdriver_client::{Driver, DriverSession, HttpDriverBuilder, LocationStrategy};
+use webdriver_client::{Driver, DriverSession, HttpDriverBuilder, LocationStrategy, MultiSessionDriver};
+use webdriver_client::chrome::ChromeDriver;
 use webdriver_client::firefox::GeckoDriver;
 use webdriver_client::messages::ExecuteCmd;
 
@@ -333,6 +334,24 @@ fn test_http_driver() {
     sess.go(&test_url).unwrap();
     let url = sess.get_current_url().unwrap();
     assert_eq!(url, test_url);
+}
+
+#[test]
+fn launch_multiple_chromes() {
+    ensure_logging_init();
+
+    let server = FileServer::new();
+    let chromedriver = ChromeDriver::build().spawn().unwrap();
+    let chrome1 = chromedriver.session().expect("Error starting first browser");
+    let chrome2 = chromedriver.session().expect("Error starting second browser");
+
+    let page1 = server.url("/page1.html");
+    let page2 = server.url("/page2.html");
+    chrome1.go(&page1).expect("Error getting page1");
+    chrome2.go(&page2).expect("Error getting page2");
+
+    assert_eq!(&chrome1.get_current_url().expect("Error getting url 1"), &page1);
+    assert_eq!(&chrome2.get_current_url().expect("Error getting url 2"), &page2);
 }
 
 fn ensure_logging_init() {

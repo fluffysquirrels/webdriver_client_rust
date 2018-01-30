@@ -7,6 +7,7 @@ use std::convert::From;
 use std::io::Read;
 use std::io;
 use std::fmt::{self, Debug};
+use std::sync::Weak;
 
 extern crate hyper;
 use hyper::client::*;
@@ -83,10 +84,11 @@ impl From<serde_json::Error> for Error {
 pub trait Driver {
     /// The url used to connect to this driver
     fn url(&self) -> &str;
+}
+
+pub trait MultiSessionDriver: Driver {
     /// Start a session for this driver
-    fn session(self) -> Result<DriverSession, Error> where Self : Sized + 'static {
-        DriverSession::create_session(Box::new(self))
-    }
+    fn session(&self) -> Result<DriverSession, Error>;
 }
 
 /// A driver using a pre-existing WebDriver HTTP URL.
@@ -99,6 +101,17 @@ pub struct HttpDriver {
 
 impl Driver for HttpDriver {
     fn url(&self) -> &str { &self.url }
+}
+
+impl MultiSessionDriver for HttpDriver {
+    fn session(&self) -> Result<DriverSession, Error> {
+        // We need to pass something which implements Drop here,
+        // and a Weak is a cheap something.
+        // Ideally, create_session would take an Option<impl Drop>,
+        // and we could just pass None, but impl Trait isn't a stable thing yet.
+        let r: Weak<()> = Weak::new();
+        DriverSession::create_session(&self.url(), r)
+    }
 }
 
 /// Wrapper around the hyper Client, that handles Json encoding and URL construction
@@ -166,7 +179,7 @@ impl HttpClient {
 ///
 /// By default the session is removed on `Drop`
 pub struct DriverSession {
-    driver: Box<Driver>,
+    driver: Box<Drop>,
     client: HttpClient,
     session_id: String,
     drop_session: bool,
@@ -174,17 +187,17 @@ pub struct DriverSession {
 
 impl DriverSession {
     /// Create a new session with the driver.
-    pub fn create_session(driver: Box<Driver>)
+    pub fn create_session<D: Drop + Sized + 'static>(url: &str, driver: D)
     -> Result<DriverSession, Error>
     {
-        let baseurl = Url::parse(driver.url())
+        let baseurl = Url::parse(url)
                           .map_err(|_| Error::InvalidUrl)?;
         let client = HttpClient::new(baseurl);
         info!("Creating session at {}", client.baseurl);
         let sess = try!(Self::new_session(&client, &NewSessionCmd::new()));
         info!("Session {} created", sess.sessionId);
         Ok(DriverSession {
-            driver: driver,
+            driver: Box::new(driver),
             client: client,
             session_id: sess.sessionId,
             drop_session: true,
@@ -193,10 +206,8 @@ impl DriverSession {
 
     /// Use an existing session
     pub fn attach(url: &str, session_id: &str) -> Result<DriverSession, Error> {
-        let driver = Box::new(HttpDriver {
-            url: url.to_owned(),
-        });
         let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
+        let driver: Box<Weak<()>> = Box::new(Weak::new());
         let mut s = DriverSession {
             driver: driver,
             client: HttpClient::new(baseurl),
