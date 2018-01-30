@@ -7,6 +7,7 @@ addons:
   # Force the latest firefox, otherwise we get an old ESR version
   # that we don't even support
   firefox: latest
+  chrome: stable
   apt:
     packages:
     - firefox
