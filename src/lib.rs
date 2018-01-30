@@ -327,6 +327,11 @@ impl DriverSession {
         let _: Empty = try!(self.client.post(&format!("/session/{}/frame", self.session_id), &SwitchFrameCmd::from(handle)));
         Ok(())
     }
+
+    pub fn switch_to_parent_frame(&self) -> Result<(), Error> {
+        let _: Empty = try!(self.client.post(&format!("/session/{}/frame/parent", self.session_id), &Empty {}));
+        Ok(())
+    }
 }
 
 impl Drop for DriverSession {
