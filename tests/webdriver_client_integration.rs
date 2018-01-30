@@ -227,6 +227,23 @@ fn element_children() {
 }
 
 #[test]
+fn refresh() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let elem = sess.find_element("#textfield", LocationStrategy::Css).expect("Error finding element [1]");
+    assert_eq!(elem.property("value").expect("Error getting value [1]"), "Pre-filled".to_owned());
+
+    elem.clear().expect("Error clearing");
+    assert_eq!(elem.property("value").expect("Error getting value [1]"), "".to_owned());
+
+    sess.refresh().expect("Error refreshing");
+    elem.text().expect_err("Want stale element error");
+    let elem2 = sess.find_element("#textfield", LocationStrategy::Css).expect("Error finding element [1]");
+    assert_eq!(elem2.property("value").expect("Error getting value [2]"), "Pre-filled".to_owned());
+}
+
+#[test]
 fn execute() {
     let (server, sess) = setup();
     let page1 = server.url("/page1.html");
