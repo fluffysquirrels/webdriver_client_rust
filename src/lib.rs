@@ -368,6 +368,19 @@ impl<'a> Element<'a> {
         Ok(v.value)
     }
 
+    pub fn find_element(&self, selector: &str, strategy: LocationStrategy) -> Result<Element, Error> {
+        let cmd = FindElementCmd { using: strategy, value: selector };
+        let v: Value<ElementReference> = try!(self.session.client.post(&format!("/session/{}/element/{}/element", self.session.session_id, self.reference), &cmd));
+        Ok(Element::new(self.session, v.value.reference))
+    }
+
+    pub fn find_elements(&self, selector: &str, strategy: LocationStrategy) -> Result<Vec<Element>, Error> {
+        let cmd = FindElementCmd { using: strategy, value: selector };
+        let v: Value<Vec<ElementReference>> = try!(self.session.client.post(&format!("/session/{}/element/{}/elements", self.session.session_id, self.reference), &cmd));
+
+        Ok(v.value.into_iter().map(|er| Element::new(self.session, er.reference)).collect())
+    }
+
     pub fn reference(&self) -> Result<JsonValue, Error> {
         serde_json::to_value(&ElementReference::from_str(&self.reference))
             .map_err(|err| Error::from(err))
