@@ -22,4 +22,4 @@ before_script:
   - export PATH=$PATH:$HOME/.cargo/bin:$PWD/bin
   - which geckodriver
 script:
-  - RUST_LOG="webdriver=trace" cargo test --verbose
+  - RUST_LOG="webdriver=trace" cargo test --verbose -- --test-threads=1
