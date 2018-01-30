@@ -7,6 +7,7 @@ addons:
   # Force the latest firefox, otherwise we get and old ESR version
   # that we dont even support
   firefox: latest
+  chrome: stable
   apt:
     packages:
     - firefox
@@ -21,5 +22,10 @@ before_script:
   - bin/download_geckodriver
   - export PATH=$PATH:$HOME/.cargo/bin:$PWD/bin
   - which geckodriver
+  # install chromedriver
+  - bin/download_chromedriver
+  - export CHROME_BIN=/usr/bin/google-chrome-stable
+  - export CHROME_HEADLESS=1
+  - which chromedriver
 script:
   - TC="${TRAVIS_RUST_VERSION}" bin/build_tc
