@@ -347,10 +347,10 @@ impl<'a> Element<'a> {
         Ok(v.value)
     }
 
-//    pub fn property(&self, name: &str) -> Result<String, Error> {
-//        let v: Value<_> = try!(self.client.get(&format!("/session/{}/element/{}/property/{}", self.session_id, el.reference, name)));
-//        Ok(v.value)
-//    }
+    pub fn property(&self, name: &str) -> Result<String, Error> {
+        let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/property/{}", self.session.session_id(), self.reference, name)));
+        Ok(v.value)
+    }
 
     pub fn css_value(&self, name: &str) -> Result<String, Error> {
         let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/css/{}", self.session.session_id(), self.reference, name)));
