@@ -2,7 +2,10 @@
 name = "webdriver_client"
 description = "WebDriver client library"
 license = "ISC"
-version = "0.1.1"
+
+# Next version is v0.2 due to changes in #9, #14:
+# * Add NewSessionCmd argument ot Driver.session().
+version = "0.2.0-alpha"
 authors = ["raf",
            "Alex Helfet <alex.helfet@gmail.com>"]
 repository = "https://github.com/fluffysquirrels/webdriver_client_rust"
