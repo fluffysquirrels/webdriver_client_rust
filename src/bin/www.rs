@@ -2,6 +2,7 @@ extern crate webdriver_client;
 use webdriver_client::*;
 use webdriver_client::messages::{LocationStrategy, ExecuteCmd};
 use webdriver_client::firefox::GeckoDriver;
+use webdriver_client::chrome::ChromeDriver;
 
 extern crate rustyline;
 use rustyline::error::ReadlineError;
@@ -9,6 +10,8 @@ use rustyline::Editor;
 
 extern crate clap;
 use clap::{App, Arg};
+
+extern crate stderrlog;
 
 fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), Error> {
     match name {
@@ -27,6 +30,11 @@ fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), 
                 println!("#{} {}", idx, elem.outer_html()?);
             }
         }
+        "frames" => {
+            for (idx, elem) in sess.find_elements("iframe", LocationStrategy::Css)?.iter().enumerate() {
+                println!("#{} {}", idx, elem.raw_reference());
+            }
+        }
         "windows" => {
             for (idx, handle) in sess.get_window_handles()?.iter().enumerate() {
                 println!("#{} {}", idx, handle)
@@ -40,6 +48,14 @@ fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), 
             match sess.execute(script)? {
                 JsonValue::String(ref s) => println!("{}", s),
                 other => println!("{}", other),
+            }
+        }
+        "switchframe" => {
+            let arg = args.trim();
+            if arg.is_empty() {
+                try!(sess.switch_to_frame(JsonValue::Null));
+            } else {
+                try!(sess.switch_to_frame(try!(Element::new(sess, arg.to_string()).reference())));
             }
         }
         _ => println!("Unknown function: \"{}\"", name),
@@ -59,7 +75,23 @@ fn main() {
              .help("Attach to a running webdriver")
              .value_name("URL")
              .takes_value(true))
+        .arg(Arg::with_name("driver")
+             .short("D")
+             .long("driver")
+             .possible_values(&["geckodriver", "chromedriver"])
+             .default_value("geckodriver")
+             .takes_value(true))
+        .arg(Arg::with_name("verbose")
+             .short("v")
+             .multiple(true)
+             .help("Increases verbose"))
         .get_matches();
+
+    stderrlog::new()
+        .module("webdriver_client")
+        .verbosity(matches.occurrences_of("verbose") as usize)
+        .init()
+        .expect("Unable to initialize logging in stderr");
 
     let sess = match matches.value_of("attach-to") {
         Some(url) => HttpDriverBuilder::default()
@@ -67,10 +99,24 @@ fn main() {
             .build().unwrap()
             .session()
             .expect("Unable to attach to WebDriver session"),
-        None => GeckoDriver::spawn()
-            .expect("Unable to start geckodriver")
-            .session()
-            .expect("Unable to start Geckodriver session"),
+        None => match matches.value_of("driver").unwrap() {
+            "geckodriver" => {
+                GeckoDriver::spawn()
+                    .expect("Unable to start geckodriver")
+                    .session()
+                    .expect("Unable to start Geckodriver session")
+            }
+            "chromedriver" => {
+                ChromeDriver::spawn()
+                    .expect("Unable to start chromedriver")
+                    .session()
+                    .expect("Unable to start chromedriver session")
+            }
+            unsupported => {
+                // should be unreachable see Arg::possible_values()
+                panic!("Unsupported driver: {}", unsupported);
+            }
+        }
     };
 
     let mut rl = Editor::<()>::new();

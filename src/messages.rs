@@ -35,13 +35,20 @@ pub struct WebDriverError {
 
 #[derive(Serialize)]
 pub struct NewSessionCmd {
-    required: JsonValue,
+    capabilities: JsonValue,
 }
 
 impl NewSessionCmd {
     pub fn new() -> Self {
         NewSessionCmd {
-            required: JsonValue::Null,
+            capabilities: json!({
+                "alwaysMatch": {
+                    // ask chrome to be w3c compliant
+                    "goog:chromeOptions": {
+                        "w3c": true
+                    }
+                }
+            }),
         }
     }
 
@@ -117,6 +124,8 @@ impl Serialize for ElementReference {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut ss = s.serialize_struct("ElementReference", 1)?;
         ss.serialize_field("element-6066-11e4-a52e-4f735466cecf", &self.reference)?;
+        // even in w3c compliance mode chromedriver only accepts a reference name ELEMENT
+        ss.serialize_field("ELEMENT", &self.reference)?;
         ss.end()
     }
 }
@@ -196,18 +205,4 @@ pub struct Cookie {
 pub struct ExecuteCmd {
     pub script: String,
     pub args: Vec<JsonValue>,
-}
-
-#[cfg(test)]
-mod tests {
-    use serde_json::{from_str, to_string};
-    use super::*;
-
-    #[test]
-    fn element_ref_serialize() {
-        let r: ElementReference = from_str("{\"element-6066-11e4-a52e-4f735466cecf\": \"ZZZZ\"}").unwrap();
-        assert_eq!(r.reference, "ZZZZ");
-        let r2 = from_str(&to_string(&r).unwrap()).unwrap();
-        assert_eq!(r, r2);
-    }
 }

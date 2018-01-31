@@ -6,17 +6,15 @@ use std::time::Duration;
 
 use super::util;
 
-pub struct GeckoDriverBuilder {
+pub struct ChromeDriverBuilder {
     port: Option<u16>,
-    ff_binary: String,
     kill_on_drop: bool,
 }
 
-impl GeckoDriverBuilder {
+impl ChromeDriverBuilder {
     pub fn new() -> Self {
-        GeckoDriverBuilder {
+        ChromeDriverBuilder {
             port: None,
-            ff_binary: "firefox".to_owned(),
             kill_on_drop: true,
         }
     }
@@ -24,22 +22,15 @@ impl GeckoDriverBuilder {
         self.port = Some(port);
         self
     }
-    pub fn firefox_binary(mut self, binary: &str) -> Self {
-        self.ff_binary = binary.to_owned();
-        self
-    }
     pub fn kill_on_drop(mut self, kill: bool) -> Self {
         self.kill_on_drop = kill;
         self
     }
-    pub fn spawn(self) -> Result<GeckoDriver, Error> {
+    pub fn spawn(self) -> Result<ChromeDriver, Error> {
         let port = util::check_tcp_port(self.port)?;
 
-        let child = Command::new("geckodriver")
-            .arg("-b")
-            .arg(self.ff_binary)
-            .arg("--webdriver-port")
-            .arg(format!("{}", port))
+        let child = Command::new("chromedriver")
+            .arg(format!("--port={}", port))
             .stdin(Stdio::null())
             .stderr(Stdio::null())
             .stdout(Stdio::null())
@@ -47,7 +38,7 @@ impl GeckoDriverBuilder {
 
         // TODO: parameterize this
         thread::sleep(Duration::new(1, 500));
-        Ok(GeckoDriver {
+        Ok(ChromeDriver {
             child: child,
             url: format!("http://localhost:{}", port),
             kill_on_drop: self.kill_on_drop,
@@ -55,23 +46,23 @@ impl GeckoDriverBuilder {
     }
 }
 
-/// A geckodriver process
-pub struct GeckoDriver {
+/// A chromedriver process
+pub struct ChromeDriver {
     child: Child,
     url: String,
     kill_on_drop: bool,
 }
 
-impl GeckoDriver {
+impl ChromeDriver {
     pub fn spawn() -> Result<Self, Error> {
-        GeckoDriverBuilder::new().spawn()
+        ChromeDriverBuilder::new().spawn()
     }
-    pub fn build() -> GeckoDriverBuilder {
-        GeckoDriverBuilder::new()
+    pub fn build() -> ChromeDriverBuilder {
+        ChromeDriverBuilder::new()
     }
 }
 
-impl Drop for GeckoDriver {
+impl Drop for ChromeDriver {
     fn drop(&mut self) {
         if self.kill_on_drop {
             let _ = self.child.kill();
@@ -79,9 +70,8 @@ impl Drop for GeckoDriver {
     }
 }
 
-impl Driver for GeckoDriver {
+impl Driver for ChromeDriver {
     fn url(&self) -> &str {
         &self.url
     }
 }
-

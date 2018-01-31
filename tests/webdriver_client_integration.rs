@@ -254,7 +254,33 @@ fn execute_async() {
 
 // TODO: Test window handles
 
-// TODO: Test Frames
+#[test]
+fn test_frame_switch() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page3.html");
+    sess.go(&page1).expect("Error going to page1");
+
+    // switching to parent from parent is harmless
+    sess.switch_to_parent_frame().unwrap();
+
+    let frames = sess.find_elements("iframe", LocationStrategy::Css).unwrap();
+    assert_eq!(frames.len(), 1);
+
+    sess.switch_to_frame(frames[0].reference().unwrap()).unwrap();
+    let frames = sess.find_elements("iframe", LocationStrategy::Css).unwrap();
+    assert_eq!(frames.len(), 2);
+
+    for f in &frames {
+        sess.switch_to_frame(f.reference().unwrap()).unwrap();
+        let childframes = sess.find_elements("iframe", LocationStrategy::Css).unwrap();
+        assert_eq!(childframes.len(), 0);
+        sess.switch_to_parent_frame().unwrap();
+    }
+
+    sess.switch_to_parent_frame().unwrap();
+    let frames = sess.find_elements("iframe", LocationStrategy::Css).unwrap();
+    assert_eq!(frames.len(), 1);
+}
 
 #[test]
 fn test_http_driver() {
