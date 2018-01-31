@@ -16,4 +16,6 @@ rustup toolchain update ${TC};
 cd ${CRATE_DIR};
 
 cargo +${TC} build -p webdriver_client --verbose;
-cargo +${TC} test -p webdriver_client --verbose;
+RUST_LOG="webdriver=trace" \
+    cargo +${TC} test -p webdriver_client --verbose -- \
+    --test-threads=1;
