@@ -7,6 +7,7 @@ use std::convert::From;
 use std::io::Read;
 use std::io;
 use std::fmt::{self, Debug};
+use std::collections::BTreeMap;
 
 extern crate hyper;
 use hyper::client::*;
@@ -170,6 +171,7 @@ pub struct DriverSession {
     client: HttpClient,
     session_id: String,
     drop_session: bool,
+    capabilities: BTreeMap<String, JsonValue>,
 }
 
 impl DriverSession {
@@ -188,6 +190,7 @@ impl DriverSession {
             client: client,
             session_id: sess.sessionId,
             drop_session: true,
+            capabilities: sess.capabilities,
         })
     }
 
@@ -204,6 +207,7 @@ impl DriverSession {
             // This starts as false to avoid triggering the deletion call in Drop
             // if an error occurs
             drop_session: false,
+            capabilities: Default::default(),
         };
         info!("Connecting to session at {} with id {}", url, session_id);
 
@@ -218,6 +222,14 @@ impl DriverSession {
         // The session exists, enable session deletion on Drop
         s.drop_session = true;
         Ok(s)
+    }
+
+    pub fn browser_name(&self) -> Option<&str> {
+        if let Some(&JsonValue::String(ref val)) = self.capabilities.get("browserName") {
+            Some(val)
+        } else {
+            None
+        }
     }
 
     pub fn session_id(&self) -> &str {

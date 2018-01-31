@@ -266,6 +266,14 @@ fn execute() {
 }
 
 #[test]
+fn browser_name() {
+    let driver = GeckoDriver::build()
+        .spawn().expect("Error starting geckodriver");
+    let session = driver.session(&Default::default()).expect("Error starting session");
+    assert_eq!(session.browser_name(), Some("firefox"));
+}
+
+#[test]
 fn execute_async() {
     let (server, sess) = setup();
     let page1 = server.url("/page1.html");

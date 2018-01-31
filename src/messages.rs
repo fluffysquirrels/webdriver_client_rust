@@ -6,7 +6,7 @@ use serde::de::Error as DeError;
 use serde::ser::SerializeStruct;
 use serde_json::Value as JsonValue;
 use std::fmt;
-use std::collections;
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub enum LocationStrategy {
@@ -36,7 +36,7 @@ pub struct WebDriverError {
 
 #[derive(Serialize, Default)]
 struct Capabilities {
-    alwaysMatch: collections::BTreeMap<String, JsonValue>,
+    alwaysMatch: BTreeMap<String, JsonValue>,
 }
 
 #[derive(Serialize)]
@@ -71,6 +71,7 @@ impl Default for NewSessionCmd {
 #[derive(Debug, Deserialize)]
 pub struct Session {
     pub sessionId: String,
+    pub capabilities: BTreeMap<String, JsonValue>,
 }
 
 #[derive(Serialize)]
