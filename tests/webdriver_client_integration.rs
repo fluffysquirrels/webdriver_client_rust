@@ -173,6 +173,17 @@ fn element_css_value() {
 }
 
 #[test]
+fn element_clear() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let element = sess.find_element("#textfield", LocationStrategy::Css).expect("Error finding element");
+    assert_eq!(&element.property("value").expect("Error getting value [1]"), "Pre-filled");
+    element.clear().expect("Error clearing element");
+    assert_eq!(&element.property("value").expect("Error getting value [2]"), "");
+}
+
+#[test]
 fn element_text() {
     let (server, sess) = setup();
     let page1 = server.url("/page1.html");
@@ -213,6 +224,23 @@ fn element_children() {
 
     let children = element.find_elements("span", LocationStrategy::Css).expect("Error finding children by CSS");
     assert_eq!(children.iter().map(|e| e.attribute("id").expect("Error getting id")).collect::<Vec<_>>(), vec!["child1".to_owned(), "child2".to_owned()]);
+}
+
+#[test]
+fn refresh() {
+    let (server, sess) = setup();
+    let page1 = server.url("/page1.html");
+    sess.go(&page1).expect("Error going to page1");
+    let elem = sess.find_element("#textfield", LocationStrategy::Css).expect("Error finding element [1]");
+    assert_eq!(elem.property("value").expect("Error getting value [1]"), "Pre-filled".to_owned());
+
+    elem.clear().expect("Error clearing");
+    assert_eq!(elem.property("value").expect("Error getting value [1]"), "".to_owned());
+
+    sess.refresh().expect("Error refreshing");
+    elem.text().expect_err("Want stale element error");
+    let elem2 = sess.find_element("#textfield", LocationStrategy::Css).expect("Error finding element [1]");
+    assert_eq!(elem2.property("value").expect("Error getting value [2]"), "Pre-filled".to_owned());
 }
 
 #[test]
