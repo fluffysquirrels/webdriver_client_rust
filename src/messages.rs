@@ -45,9 +45,6 @@ pub struct NewSessionCmd {
 }
 
 impl NewSessionCmd {
-// TODO firefox specifc prefs
-// [moz:firefoxOptions][prefs][name] = value;
-
     /// Adds a required capability. If the capability was already set, it is replaced.
     pub fn always_match(&mut self, name: &str, capability: Option<JsonValue>) -> &mut Self {
         match capability {
@@ -55,6 +52,22 @@ impl NewSessionCmd {
             None => self.capabilities.alwaysMatch.remove(name),
         };
         self
+    }
+
+    /// Extend a capability requirement with a new object.
+    ///
+    /// Extending a capability that does not exist, or attempting to extend non objects will have
+    /// the same effect as calling [always_match()](#method.always_match).
+    pub fn extend_always_match(&mut self, name: &str, capability: JsonValue) {
+        if let JsonValue::Object(capability) = capability {
+            if let Some(&mut JsonValue::Object(ref mut map)) = self.capabilities.alwaysMatch.get_mut(name) {
+                map.extend(capability);
+                return;
+            }
+            self.capabilities.alwaysMatch.insert(name.to_string(), JsonValue::Object(capability));
+        } else {
+            self.capabilities.alwaysMatch.insert(name.to_string(), capability);
+        }
     }
 }
 
@@ -216,4 +229,37 @@ pub struct Cookie {
 pub struct ExecuteCmd {
     pub script: String,
     pub args: Vec<JsonValue>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NewSessionCmd;
+    #[test]
+    fn capability_extend() {
+        let mut session = NewSessionCmd::default();
+        session.always_match("cap", Some(json!({"a": true})));
+        assert_eq!(session.capabilities.alwaysMatch.get("cap").unwrap(), &json!({"a": true}));
+
+        session.extend_always_match("cap", json!({"b": false}));
+        assert_eq!(session.capabilities.alwaysMatch.get("cap").unwrap(), &json!({"a": true, "b": false}));
+
+        session.extend_always_match("cap", json!({"a": false}));
+        assert_eq!(session.capabilities.alwaysMatch.get("cap").unwrap(), &json!({"a": false, "b": false}));
+    }
+    #[test]
+    fn capability_extend_replaces_non_obj() {
+        let mut session = NewSessionCmd::default();
+        session.always_match("cap", Some(json!("value")));
+        assert_eq!(session.capabilities.alwaysMatch.get("cap").unwrap(), &json!("value"));
+
+        session.extend_always_match("cap", json!({"a": false}));
+        assert_eq!(session.capabilities.alwaysMatch.get("cap").unwrap(), &json!({"a": false}));
+    }
+    #[test]
+    fn capability_extend_replaces_obj_with_non_obj() {
+        let mut session = NewSessionCmd::default();
+        session.always_match("cap", Some(json!({"value": true})))
+            .extend_always_match("cap", json!("new"));
+        assert_eq!(session.capabilities.alwaysMatch.get("cap").unwrap(), &json!("new"));
+    }
 }
