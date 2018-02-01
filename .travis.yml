@@ -10,7 +10,6 @@ addons:
   chrome: stable
   apt:
     packages:
-    - firefox
     - xvfb
 before_script:
   - source bin/travis/before
