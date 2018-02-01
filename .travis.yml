@@ -10,7 +10,6 @@ addons:
   chrome: stable
   apt:
     packages:
-    - firefox
     - xvfb
 before_script:
   # start xvfb and firefox to run the tests
