@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# This script is sourced as the travis before-script.
+
+# Store old shell options
+shopt_old=$-;
+
+set -x;
+
+crate_dir="$( cd $(dirname ${BASH_SOURCE[0]})/../..; pwd )";
+
+# Start xvfb to run the tests
+/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1280x1024x16;
+# Give xvfb some time to start
+sleep 3;
+export DISPLAY=:99.0;
+
+# Install geckodriver
+bin/download_geckodriver;
+export PATH=$PATH:$HOME/.cargo/bin:$crate_dir/bin;
+
+# Show bin locations
+which firefox;
+which geckodriver;
+
+# Restore old shell options
+if [[ ${shopt_old} != *"x"* ]]; then
+    set +x;
+fi
