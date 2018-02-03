@@ -2,6 +2,7 @@
 
 #![allow(non_snake_case)]
 
+use ::util::merge_json_mut;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use serde::de::{Visitor, MapAccess};
 use serde::de::Error as DeError;
@@ -38,47 +39,51 @@ pub struct WebDriverError {
 
 #[derive(Serialize, Default)]
 struct Capabilities {
-    alwaysMatch: BTreeMap<String, JsonValue>,
+    alwaysMatch: JsonValue,
 }
 
+/// The arguments to create a new session, including the capabilities
+/// as defined by the [WebDriver specification][cap-spec].
+///
+/// [cap-spec]: https://www.w3.org/TR/webdriver/#capabilities
 #[derive(Serialize)]
 pub struct NewSessionCmd {
     capabilities: Capabilities,
 }
 
 impl NewSessionCmd {
-    /// Adds a required capability. If the capability was already set, it is replaced.
-    pub fn always_match(&mut self, name: &str, capability: Option<JsonValue>) -> &mut Self {
-        match capability {
-            Some(value) => self.capabilities.alwaysMatch.insert(name.to_string(), value),
-            None => self.capabilities.alwaysMatch.remove(name),
-        };
+    /// Merges a new `alwaysMatch` capability with the given `key` and
+    /// `value` into the new session's capabilities.
+    ///
+    /// For the merging rules, see the documentation of
+    /// `webdriver_client::util::merge_json`.
+    pub fn always_match(&mut self, key: &str, value: JsonValue) -> &mut Self {
+        merge_json_mut(&mut self.capabilities.alwaysMatch,
+                       &json!({ key: value }));
         self
     }
 
-    /// Extend a capability requirement with a new object.
-    ///
-    /// Extending a capability that does not exist, or attempting to extend non objects will have
-    /// the same effect as calling [always_match()](#method.always_match).
-    pub fn extend_always_match(&mut self, name: &str, capability: JsonValue) {
-        if let JsonValue::Object(capability) = capability {
-            if let Some(&mut JsonValue::Object(ref mut map)) = self.capabilities.alwaysMatch.get_mut(name) {
-                map.extend(capability);
-                return;
-            }
-            self.capabilities.alwaysMatch.insert(name.to_string(), JsonValue::Object(capability));
-        } else {
-            self.capabilities.alwaysMatch.insert(name.to_string(), capability);
-        }
+    /// Resets the `alwaysMatch` capabilities to an empty JSON object.
+    pub fn reset_always_match(&mut self) -> &mut Self {
+        self.capabilities.alwaysMatch = json!({});
+        self
     }
 }
 
 impl Default for NewSessionCmd {
     fn default() -> Self {
-        let mut capabilities: Capabilities = Default::default();
-        capabilities.alwaysMatch.insert("goog:chromeOptions".to_string(), json!({"w3c": true}));
         NewSessionCmd {
-            capabilities,
+            capabilities: Capabilities {
+                alwaysMatch: json!({
+
+                    // By default chromedriver is NOT compliant with the w3c
+                    // spec. But one can request w3c compliance with a capability
+                    // extension included in the new session command payload.
+                    "goog:chromeOptions": {
+                        "w3c": true
+                    }
+                })
+            },
         }
     }
 }
