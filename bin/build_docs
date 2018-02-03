@@ -3,7 +3,9 @@ set -ex
 
 CRATE_DIR=$( cd $(dirname ${BASH_SOURCE[0]})/..; pwd )
 
-rustup toolchain update nightly;
+TC=nightly
+
+rustup toolchain update ${TC};
 
 export CARGO_TARGET_DIR="${CRATE_DIR}/target/doc";
-cargo +nightly doc -p webdriver_client --verbose --no-deps;
+cargo +${TC} doc -p webdriver_client --verbose --no-deps --open;
