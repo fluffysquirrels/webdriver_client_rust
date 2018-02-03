@@ -422,11 +422,20 @@ macro_rules! browser_tests {
                                                     .url(driver.url())
                                                     .build().unwrap();
 
-                // Run chrome in headless mode without sandbox (Travis CI)
                 let mut session_params: NewSessionCmd = Default::default();
-                session_params.extend_always_match("goog:chromeOptions", json!({
-                    "args": ["--no-sandbox", "--headless"],
-                }));
+                session_params.extend_always_match(
+                    // Run Chrome in headless mode without sandbox
+                    // (required for Travis CI).
+                    "goog:chromeOptions", json!({
+                        "args": ["--no-sandbox", "--headless"],
+                    }));
+                session_params.extend_always_match(
+                    // Run Firefox in headless mode.
+                    "moz:firefoxOptions", json!({
+                        "args": ["-headless"]
+                    }));
+                gecko.session(&session_params).expect("Error starting session")
+
                 let sess = http_driver.session(&session_params).unwrap();
 
                 let server = FileServer::new();
