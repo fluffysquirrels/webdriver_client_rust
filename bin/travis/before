@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -ex;
+
+readonly crate_dir="$( cd $(dirname ${BASH_SOURCE[0]})/../..; pwd )";
+
+# start xvfb and firefox to run the tests
+/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1280x1024x16
+sleep 3 # give xvfb some time to start
+export DISPLAY=:99.0
+which firefox
+# install geckodriver
+bin/download_geckodriver
+export PATH=$PATH:$HOME/.cargo/bin:$crate_dir/bin
+which geckodriver
