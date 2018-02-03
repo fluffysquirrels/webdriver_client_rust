@@ -3,42 +3,42 @@
 //! A library to drive web browsers using the webdriver
 //! interface.
 
-use std::convert::From;
-use std::io::Read;
-use std::io;
-use std::fmt::{self, Debug};
-use std::collections::BTreeMap;
-
+// extern crates
 extern crate hyper;
-use hyper::client::*;
-use hyper::Url;
-
 extern crate serde;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-
 #[macro_use]
 extern crate serde_json;
-pub use serde_json::Value as JsonValue;
-
 #[macro_use]
 extern crate serde_derive;
-
 #[macro_use]
 extern crate log;
-
 #[macro_use]
 extern crate derive_builder;
-
 extern crate rand;
 
-pub mod messages;
-use messages::*;
-pub use messages::LocationStrategy;
-
-mod util;
-pub mod firefox;
+// Sub-modules
 pub mod chrome;
+pub mod firefox;
+pub mod messages;
+pub mod util;
+
+// pub use statements
+pub use messages::LocationStrategy;
+pub use serde_json::Value as JsonValue;
+
+// use statements
+use hyper::client::*;
+use hyper::Url;
+use messages::*;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use std::collections::BTreeMap;
+use std::convert::From;
+use std::fmt::{self, Debug};
+use std::io::Read;
+use std::io;
+
+// --------
 
 #[derive(Debug)]
 pub enum Error {
