@@ -378,7 +378,7 @@ macro_rules! browser_tests {
             // TODO: Test window handles
 
             #[test]
-            fn test_frame_switch() {
+            fn frame_switch() {
                 let (server, sess) = setup();
                 let page1 = server.url("/page3.html");
                 sess.go(&page1).expect("Error going to page1");
@@ -406,7 +406,7 @@ macro_rules! browser_tests {
             }
 
             #[test]
-            fn test_http_driver() {
+            fn http_driver() {
                 ensure_logging_init();
 
                 let driver = test_browser().driver();
@@ -422,6 +422,8 @@ macro_rules! browser_tests {
                                                     .url(driver.url())
                                                     .build().unwrap();
 
+                // TODO: Add these common settings to a method on
+                // NewSessionCmd in lib, or somewhere similar.
                 let mut session_params: NewSessionCmd = Default::default();
                 session_params.extend_always_match(
                     // Run Chrome in headless mode without sandbox
@@ -434,7 +436,6 @@ macro_rules! browser_tests {
                     "moz:firefoxOptions", json!({
                         "args": ["-headless"]
                     }));
-                gecko.session(&session_params).expect("Error starting session")
 
                 let sess = http_driver.session(&session_params).unwrap();
 
