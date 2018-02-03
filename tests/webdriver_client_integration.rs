@@ -33,7 +33,12 @@ impl TestBrowser {
             &TestBrowser::Firefox => {
                 let gecko = GeckoDriver::build()
                     .spawn().expect("Error starting geckodriver");
-                gecko.session(&Default::default()).expect("Error starting session")
+                let mut session_params = NewSessionCmd::default();
+                session_params.extend_always_match(
+                    "moz:firefoxOptions", json!({
+                        "args": ["-headless"]
+                    }));
+                gecko.session(&session_params).expect("Error starting session")
             }
             &TestBrowser::Chrome => {
                 let chrome = ChromeDriver::build()
@@ -41,9 +46,10 @@ impl TestBrowser {
 
                 // Make sure tests run in headless mode without a sandbox (Travis CI)
                 let mut session_params: NewSessionCmd = Default::default();
-                session_params.extend_always_match("goog:chromeOptions", json!({
-                    "args": ["--no-sandbox", "--headless"],
-                }));
+                session_params.extend_always_match(
+                    "goog:chromeOptions", json!({
+                        "args": ["--no-sandbox", "--headless"],
+                    }));
                 chrome.session(&session_params).expect("Error starting session")
             }
         }
