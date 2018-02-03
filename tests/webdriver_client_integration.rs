@@ -29,42 +29,58 @@ enum TestBrowser {
 
 impl TestBrowser {
     fn session(&self) -> DriverSession {
-        match self {
-            &TestBrowser::Firefox => {
-                let gecko = GeckoDriver::build()
-                    .spawn().expect("Error starting geckodriver");
-                let mut session_params = NewSessionCmd::default();
-                session_params.extend_always_match(
-                    "moz:firefoxOptions", json!({
-                        "args": ["-headless"]
-                    }));
-                gecko.session(&session_params).expect("Error starting session")
+        match *self {
+            TestBrowser::Firefox => {
+                GeckoDriver::build()
+                            .spawn()
+                            .expect("Error starting geckodriver")
+                            .session(&self.new_session_cmd())
+                            .expect("Error starting session")
             }
-            &TestBrowser::Chrome => {
-                let chrome = ChromeDriver::build()
-                    .spawn().expect("Error starting chromedriver");
-
-                // Make sure tests run in headless mode without a sandbox (Travis CI)
-                let mut session_params: NewSessionCmd = Default::default();
-                session_params.extend_always_match(
-                    "goog:chromeOptions", json!({
-                        "args": ["--no-sandbox", "--headless"],
-                    }));
-                chrome.session(&session_params).expect("Error starting session")
+            TestBrowser::Chrome => {
+                ChromeDriver::build()
+                             .spawn()
+                             .expect("Error starting chromedriver")
+                             .session(&self.new_session_cmd())
+                             .expect("Error starting session")
             }
         }
     }
+
     fn driver(&self) -> Box<Driver> {
-        match self {
-            &TestBrowser::Firefox => {
+        match *self {
+            TestBrowser::Firefox => {
                 Box::new(GeckoDriver::build()
                          .spawn().expect("Error starting geckodriver"))
             }
-            &TestBrowser::Chrome => {
+            TestBrowser::Chrome => {
                 Box::new(ChromeDriver::build()
                          .spawn().expect("Error starting chromedriver"))
             }
         }
+    }
+
+    fn new_session_cmd(&self) -> NewSessionCmd {
+        let mut new = NewSessionCmd::default();
+
+        match *self {
+            TestBrowser::Firefox => {
+                new.always_match(
+                    "moz:firefoxOptions", json!({
+                        "args": ["-headless"]
+                    }))
+            }
+            TestBrowser::Chrome => {
+                // Tests must run in headless mode without a
+                // sandbox (required for Travis CI).
+                new.always_match(
+                    "goog:chromeOptions", json!({
+                        "args": ["--no-sandbox", "--headless"],
+                    }))
+            }
+        };
+
+        new
     }
 }
 
@@ -422,22 +438,8 @@ macro_rules! browser_tests {
                                                     .url(driver.url())
                                                     .build().unwrap();
 
-                // TODO: Add these common settings to a method on
-                // NewSessionCmd in lib, or somewhere similar.
-                let mut session_params: NewSessionCmd = Default::default();
-                session_params.extend_always_match(
-                    // Run Chrome in headless mode without sandbox
-                    // (required for Travis CI).
-                    "goog:chromeOptions", json!({
-                        "args": ["--no-sandbox", "--headless"],
-                    }));
-                session_params.extend_always_match(
-                    // Run Firefox in headless mode.
-                    "moz:firefoxOptions", json!({
-                        "args": ["-headless"]
-                    }));
-
-                let sess = http_driver.session(&session_params).unwrap();
+                let sess = http_driver.session(&test_browser().new_session_cmd())
+                                      .unwrap();
 
                 let server = FileServer::new();
                 let test_url = server.url("/page1.html");
