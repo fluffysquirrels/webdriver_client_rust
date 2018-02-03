@@ -1,3 +1,5 @@
+//! Support for the Firefox browser.
+
 use super::*;
 
 use std::process::{Command, Child, Stdio};

@@ -1,3 +1,5 @@
+//! Support for the Chrome browser.
+
 use super::*;
 
 use std::process::{Command, Child, Stdio};

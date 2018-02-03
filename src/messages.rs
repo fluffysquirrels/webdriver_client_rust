@@ -1,3 +1,5 @@
+//! Messages sent and received in the WebDriver protocol.
+
 #![allow(non_snake_case)]
 
 use serde::{Serialize, Deserialize, Serializer, Deserializer};

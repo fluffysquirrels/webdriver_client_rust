@@ -40,6 +40,7 @@ use std::io;
 
 // --------
 
+/// Error conditions returned by this crate.
 #[derive(Debug)]
 pub enum Error {
     FailedToLaunchDriver,
@@ -81,9 +82,11 @@ impl From<serde_json::Error> for Error {
     }
 }
 
+/// WebDriver server that can create a session.
 pub trait Driver {
     /// The url used to connect to this driver
     fn url(&self) -> &str;
+
     /// Start a session for this driver
     fn session(self, params: &NewSessionCmd) -> Result<DriverSession, Error> where Self : Sized + 'static {
         DriverSession::create_session(Box::new(self), params)
@@ -354,6 +357,7 @@ impl Drop for DriverSession {
     }
 }
 
+/// An HTML element within a WebDriver session.
 pub struct Element<'a> {
     session: &'a DriverSession,
     reference: String,
@@ -369,6 +373,12 @@ impl<'a> Element<'a> {
         Ok(v.value)
     }
 
+    /// Note: Not currently supported by ChromeDriver.
+    ///
+    /// See: [our issue comment], [ChromeDriver issue].
+    ///
+    /// [our issue comment]: https://github.com/fluffysquirrels/webdriver_client_rust/pull/14#issuecomment-361909999
+    /// [ChromeDriver issue]: https://bugs.chromium.org/p/chromedriver/issues/detail?id=1936
     pub fn property(&self, name: &str) -> Result<String, Error> {
         let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/property/{}", self.session.session_id(), self.reference, name)));
         Ok(v.value)
