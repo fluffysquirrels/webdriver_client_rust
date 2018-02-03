@@ -1,24 +1,22 @@
 #!/usr/bin/env bash
 
 # This script is sourced as the travis before-script.
+# If testing locally, source it from the crate root directory.
 
 # Store old shell options
 shopt_old=$-;
 
 set -x;
 
-crate_dir="$( cd $(dirname ${BASH_SOURCE[0]})/../..; pwd )";
-
-cd ${crate_dir};
-
 # Install geckodriver
 bin/download_geckodriver;
-export PATH=$PATH:$HOME/.cargo/bin:$crate_dir/bin;
 
 # Install chromedriver
 bin/download_chromedriver;
 export CHROME_BIN=/usr/bin/google-chrome-stable
 export CHROME_HEADLESS=1
+
+export PATH=$PATH:$PWD/bin;
 
 # Show bin locations
 which firefox;
