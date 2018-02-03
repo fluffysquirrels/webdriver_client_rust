@@ -12,6 +12,6 @@ addons:
     - firefox
     - xvfb
 before_script:
-  - source bin/travis/before
+  - bin/travis/before
 script:
   - TC="${TRAVIS_RUST_VERSION}" bin/build_tc
