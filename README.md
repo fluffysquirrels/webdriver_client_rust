@@ -19,7 +19,10 @@ Pull requests welcome.
 
 [GeckoDriver] and [ChromeDriver] are fully supported as WebDriver backends by the `webdriver_client::firefox::GeckoDriver` and `webdriver_client::chrome::ChromeDriver` structs. This crate expects the driver to be on your path.
 
-However HttpDriver will accept any WebDriver server's HTTP URL, so [ChromeDriver] for Chrome, [Microsoft WebDriver for Edge][ms-wd], `safaridriver` for Apple Safari, and [OperaDriver] for Opera should all work if you start the server yourself.
+However HttpDriver will accept any WebDriver server's HTTP URL, so
+[Microsoft WebDriver for Edge][ms-wd], `safaridriver` for Apple
+Safari, and [OperaDriver] for Opera should all work if you start the
+server yourself.
 
 [GeckoDriver]: https://github.com/mozilla/geckodriver
 [ChromeDriver]: https://sites.google.com/a/chromium.org/chromedriver/getting-started
@@ -37,12 +40,23 @@ bin/download_chromedriver
 export PATH=$PATH:$PWD/bin
 ```
 
---------
-
 ## Tests
 
 `cargo test` runs a few tests. Integration tests require geckodriver and chromedriver to be installed.
 
---------
+## Changelog
+
+### v0.2.0
+
+* Added ChromeDriver.
+* `www` bin has new commands: `frames`, `switchframe`.
+* Breaking change: `Driver::session and DriverSession::create_session` take
+  a `NewSessionCmd` argument that specifies the session capabilities.
+* New method on `DriverSession`: `browser_name`
+* New methods on `Element`: `property`, `clear`, `find_element`, `find_elements`
+  `raw_reference`.
+* Integration tests: many more of them, more assertions and a built-in HTTP server.
+
+---------------
 
 This fork is based on equalsraf's excellent work from <https://github.com/equalsraf/webdriver>.
