@@ -8,9 +8,6 @@ addons:
   # that we don't even support
   firefox: latest
   chrome: stable
-  apt:
-    packages:
-    - xvfb
 before_script:
   - source bin/travis/before
 script:
