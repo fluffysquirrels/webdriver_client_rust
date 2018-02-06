@@ -1,17 +1,15 @@
 [package]
 name = "webdriver_client"
+version = "0.2.0"
+
 description = "WebDriver client library"
 license = "ISC"
-
-# Next version is v0.2 due to changes in #9, #14:
-# * Add NewSessionCmd argument ot Driver.session().
-version = "0.2.0-alpha"
-authors = ["raf",
-           "Alex Helfet <alex.helfet@gmail.com>"]
 repository = "https://github.com/fluffysquirrels/webdriver_client_rust"
 keywords = ["webdriver", "testing", "browser"]
 categories = ["api-bindings", "development-tools", "web-programming"]
 readme="README.md"
+authors = ["equalsraf <raf-ep@gmx.com>",
+           "Alex Helfet <alex.helfet@gmail.com>"]
 
 [badges.travis-ci]
 repository = "fluffysquirrels/webdriver_client_rust"
