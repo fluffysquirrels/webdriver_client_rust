@@ -13,10 +13,5 @@ addons:
     - xvfb
 before_script:
   - source bin/travis/before
-  # install chromedriver
-  - bin/download_chromedriver
-  - export CHROME_BIN=/usr/bin/google-chrome-stable
-  - export CHROME_HEADLESS=1
-  - which chromedriver
 script:
   - TC="${TRAVIS_RUST_VERSION}" bin/build_tc

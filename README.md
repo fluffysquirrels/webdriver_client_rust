@@ -17,23 +17,23 @@ Pull requests welcome.
 
 ## Getting started
 
-[`geckodriver`](https://github.com/mozilla/geckodriver)
-(WebDriver proxy for Firefox) is fully supported as a WebDriver backend by the
-`webdriver_client::firefox::GeckoDriver` struct. This crate expects `geckodriver` to be on your path.
+[GeckoDriver] and [ChromeDriver] are fully supported as WebDriver backends by the `webdriver_client::firefox::GeckoDriver` and `webdriver_client::chrome::ChromeDriver` structs. This crate expects the driver to be on your path.
 
 However HttpDriver will accept any WebDriver server's HTTP URL, so [ChromeDriver] for Chrome, [Microsoft WebDriver for Edge][ms-wd], `safaridriver` for Apple Safari, and [OperaDriver] for Opera should all work if you start the server yourself.
 
+[GeckoDriver]: https://github.com/mozilla/geckodriver
 [ChromeDriver]: https://sites.google.com/a/chromium.org/chromedriver/getting-started
 [ms-wd]: https://docs.microsoft.com/en-us/microsoft-edge/webdriver
 [OperaDriver]: https://github.com/operasoftware/operachromiumdriver
 
 ### On Linux
 
-The script `bin/download_geckodriver` downloads the Linux x64 geckodriver binary release from the [geckodriver Github releases page](https://github.com/mozilla/geckodriver/releases) to `bin/geckodriver`.
+The scripts `bin/download_geckodriver` and `bin/download_chromedriver` download the Linux x64 binary releases for geckodriver and chromedriver.
 
-This snippet will download geckodriver and place it on your current shell's path:
+This snippet will download the drivers and place it on your current shell's path:
 ```sh
 bin/download_geckodriver
+bin/download_chromedriver
 export PATH=$PATH:$PWD/bin
 ```
 
@@ -41,8 +41,7 @@ export PATH=$PATH:$PWD/bin
 
 ## Tests
 
-`cargo test` runs a few tests. Integration tests currently require Firefox to be
-installed to `/usr/lib/firefox`.
+`cargo test` runs a few tests. Integration tests require geckodriver and chromedriver to be installed.
 
 --------
 
