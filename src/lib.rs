@@ -7,6 +7,7 @@ use std::convert::From;
 use std::io::Read;
 use std::io;
 use std::fmt::{self, Debug};
+use std::collections::BTreeMap;
 
 extern crate hyper;
 use hyper::client::*;
@@ -84,8 +85,8 @@ pub trait Driver {
     /// The url used to connect to this driver
     fn url(&self) -> &str;
     /// Start a session for this driver
-    fn session(self) -> Result<DriverSession, Error> where Self : Sized + 'static {
-        DriverSession::create_session(Box::new(self))
+    fn session(self, params: &NewSessionCmd) -> Result<DriverSession, Error> where Self : Sized + 'static {
+        DriverSession::create_session(Box::new(self), params)
     }
 }
 
@@ -170,24 +171,26 @@ pub struct DriverSession {
     client: HttpClient,
     session_id: String,
     drop_session: bool,
+    capabilities: BTreeMap<String, JsonValue>,
 }
 
 impl DriverSession {
     /// Create a new session with the driver.
-    pub fn create_session(driver: Box<Driver>)
+    pub fn create_session(driver: Box<Driver>, params: &NewSessionCmd)
     -> Result<DriverSession, Error>
     {
         let baseurl = Url::parse(driver.url())
                           .map_err(|_| Error::InvalidUrl)?;
         let client = HttpClient::new(baseurl);
         info!("Creating session at {}", client.baseurl);
-        let sess = try!(Self::new_session(&client, &NewSessionCmd::new()));
+        let sess = try!(Self::new_session(&client, params));
         info!("Session {} created", sess.sessionId);
         Ok(DriverSession {
             driver: driver,
             client: client,
             session_id: sess.sessionId,
             drop_session: true,
+            capabilities: sess.capabilities,
         })
     }
 
@@ -204,6 +207,7 @@ impl DriverSession {
             // This starts as false to avoid triggering the deletion call in Drop
             // if an error occurs
             drop_session: false,
+            capabilities: Default::default(),
         };
         info!("Connecting to session at {} with id {}", url, session_id);
 
@@ -218,6 +222,14 @@ impl DriverSession {
         // The session exists, enable session deletion on Drop
         s.drop_session = true;
         Ok(s)
+    }
+
+    pub fn browser_name(&self) -> Option<&str> {
+        if let Some(&JsonValue::String(ref val)) = self.capabilities.get("browserName") {
+            Some(val)
+        } else {
+            None
+        }
     }
 
     pub fn session_id(&self) -> &str {

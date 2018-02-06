@@ -6,6 +6,7 @@ use serde::de::Error as DeError;
 use serde::ser::SerializeStruct;
 use serde_json::Value as JsonValue;
 use std::fmt;
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub enum LocationStrategy {
@@ -33,34 +34,44 @@ pub struct WebDriverError {
     pub stacktrace: Option<String>,
 }
 
+#[derive(Serialize, Default)]
+struct Capabilities {
+    alwaysMatch: BTreeMap<String, JsonValue>,
+}
+
 #[derive(Serialize)]
 pub struct NewSessionCmd {
-    capabilities: JsonValue,
+    capabilities: Capabilities,
 }
 
 impl NewSessionCmd {
-    pub fn new() -> Self {
-        NewSessionCmd {
-            capabilities: json!({
-                "alwaysMatch": {
-                    // ask chrome to be w3c compliant
-                    "goog:chromeOptions": {
-                        "w3c": true
-                    }
-                }
-            }),
-        }
-    }
-
 // TODO firefox specifc prefs
 // [moz:firefoxOptions][prefs][name] = value;
 
+    /// Adds a required capability. If the capability was already set, it is replaced.
+    pub fn always_match(&mut self, name: &str, capability: Option<JsonValue>) -> &mut Self {
+        match capability {
+            Some(value) => self.capabilities.alwaysMatch.insert(name.to_string(), value),
+            None => self.capabilities.alwaysMatch.remove(name),
+        };
+        self
+    }
+}
 
+impl Default for NewSessionCmd {
+    fn default() -> Self {
+        let mut capabilities: Capabilities = Default::default();
+        capabilities.alwaysMatch.insert("goog:chromeOptions".to_string(), json!({"w3c": true}));
+        NewSessionCmd {
+            capabilities,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Session {
     pub sessionId: String,
+    pub capabilities: BTreeMap<String, JsonValue>,
 }
 
 #[derive(Serialize)]
