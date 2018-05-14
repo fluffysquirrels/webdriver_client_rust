@@ -5,18 +5,21 @@ use super::*;
 use std::process::{Command, Child, Stdio};
 use std::thread;
 use std::time::Duration;
+use std::ffi::OsString;
 
 use super::util;
 
 pub struct GeckoDriverBuilder {
+    driver_binary: OsString,
     port: Option<u16>,
     ff_binary: String,
     kill_on_drop: bool,
 }
 
 impl GeckoDriverBuilder {
-    pub fn new() -> Self {
+    pub fn new<S: Into<OsString>>(path: S) -> Self {
         GeckoDriverBuilder {
+            driver_binary: path.into(),
             port: None,
             ff_binary: "firefox".to_owned(),
             kill_on_drop: true,
@@ -37,7 +40,7 @@ impl GeckoDriverBuilder {
     pub fn spawn(self) -> Result<GeckoDriver, Error> {
         let port = util::check_tcp_port(self.port)?;
 
-        let child = Command::new("geckodriver")
+        let child = Command::new(self.driver_binary)
             .arg("-b")
             .arg(self.ff_binary)
             .arg("--webdriver-port")
@@ -57,6 +60,14 @@ impl GeckoDriverBuilder {
     }
 }
 
+
+/// The `default()` driver requieres `geckodriver` in your `$PATH`
+impl Default for GeckoDriverBuilder {
+    fn default() -> Self {
+        Self::new("geckodriver")
+    }
+}
+
 /// A geckodriver process
 pub struct GeckoDriver {
     child: Child,
@@ -66,10 +77,10 @@ pub struct GeckoDriver {
 
 impl GeckoDriver {
     pub fn spawn() -> Result<Self, Error> {
-        GeckoDriverBuilder::new().spawn()
+        GeckoDriverBuilder::default().spawn()
     }
     pub fn build() -> GeckoDriverBuilder {
-        GeckoDriverBuilder::new()
+        GeckoDriverBuilder::default()
     }
 }
 
@@ -86,4 +97,6 @@ impl Driver for GeckoDriver {
         &self.url
     }
 }
+
+
 
