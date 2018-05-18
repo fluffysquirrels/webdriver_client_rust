@@ -17,13 +17,17 @@ pub struct GeckoDriverBuilder {
 }
 
 impl GeckoDriverBuilder {
-    pub fn new<S: Into<OsString>>(path: S) -> Self {
+    pub fn new() -> Self {
         GeckoDriverBuilder {
-            driver_binary: path.into(),
+            driver_binary: "geckodriver".into(),
             port: None,
             ff_binary: "firefox".to_owned(),
             kill_on_drop: true,
         }
+    }
+    pub fn driver_path<S: Into<OsString>>(mut self, path: S) -> Self {
+        self.driver_binary = path.into();
+        self
     }
     pub fn port(mut self, port: u16) -> Self {
         self.port = Some(port);
@@ -61,13 +65,6 @@ impl GeckoDriverBuilder {
 }
 
 
-/// The `default()` driver requieres `geckodriver` in your `$PATH`
-impl Default for GeckoDriverBuilder {
-    fn default() -> Self {
-        Self::new("geckodriver")
-    }
-}
-
 /// A geckodriver process
 pub struct GeckoDriver {
     child: Child,
@@ -77,10 +74,10 @@ pub struct GeckoDriver {
 
 impl GeckoDriver {
     pub fn spawn() -> Result<Self, Error> {
-        GeckoDriverBuilder::default().spawn()
+        GeckoDriverBuilder::new().spawn()
     }
     pub fn build() -> GeckoDriverBuilder {
-        GeckoDriverBuilder::default()
+        GeckoDriverBuilder::new()
     }
 }
 

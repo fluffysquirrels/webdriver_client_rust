@@ -16,12 +16,16 @@ pub struct ChromeDriverBuilder {
 }
 
 impl ChromeDriverBuilder {
-    pub fn new<S: Into<OsString>>(path: S) -> Self {
+    pub fn new() -> Self {
         ChromeDriverBuilder {
-            driver_binary: path.into(),
+            driver_binary: "chromedriver".into(),
             port: None,
             kill_on_drop: true,
         }
+    }
+    pub fn driver_path<S: Into<OsString>>(mut self, path: S) -> Self {
+        self.driver_binary = path.into();
+        self
     }
     pub fn port(mut self, port: u16) -> Self {
         self.port = Some(port);
@@ -51,12 +55,6 @@ impl ChromeDriverBuilder {
     }
 }
 
-/// The `default()` driver expects `chromedriver` in your `$PATH`
-impl Default for ChromeDriverBuilder {
-    fn default() -> Self {
-        Self::new("chromedriver")
-    }
-}
 
 /// A chromedriver process
 pub struct ChromeDriver {
@@ -67,10 +65,10 @@ pub struct ChromeDriver {
 
 impl ChromeDriver {
     pub fn spawn() -> Result<Self, Error> {
-        ChromeDriverBuilder::default().spawn()
+        ChromeDriverBuilder::new().spawn()
     }
     pub fn build() -> ChromeDriverBuilder {
-        ChromeDriverBuilder::default()
+        ChromeDriverBuilder::new()
     }
 }
 
