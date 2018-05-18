@@ -3,6 +3,8 @@ rust:
   - stable
   - beta
   - nightly
+env: 
+  - RUST_BACKTRACE=1
 addons:
   # Force the latest firefox, otherwise we get an old ESR version
   # that we don't even support
