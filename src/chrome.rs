@@ -5,10 +5,12 @@ use super::*;
 use std::process::{Command, Child, Stdio};
 use std::thread;
 use std::time::Duration;
+use std::ffi::OsString;
 
 use super::util;
 
 pub struct ChromeDriverBuilder {
+    driver_binary: OsString,
     port: Option<u16>,
     kill_on_drop: bool,
 }
@@ -16,9 +18,14 @@ pub struct ChromeDriverBuilder {
 impl ChromeDriverBuilder {
     pub fn new() -> Self {
         ChromeDriverBuilder {
+            driver_binary: "chromedriver".into(),
             port: None,
             kill_on_drop: true,
         }
+    }
+    pub fn driver_path<S: Into<OsString>>(mut self, path: S) -> Self {
+        self.driver_binary = path.into();
+        self
     }
     pub fn port(mut self, port: u16) -> Self {
         self.port = Some(port);
@@ -31,7 +38,7 @@ impl ChromeDriverBuilder {
     pub fn spawn(self) -> Result<ChromeDriver, Error> {
         let port = util::check_tcp_port(self.port)?;
 
-        let child = Command::new("chromedriver")
+        let child = Command::new(self.driver_binary)
             .arg(format!("--port={}", port))
             .stdin(Stdio::null())
             .stderr(Stdio::null())
@@ -47,6 +54,7 @@ impl ChromeDriverBuilder {
         })
     }
 }
+
 
 /// A chromedriver process
 pub struct ChromeDriver {
