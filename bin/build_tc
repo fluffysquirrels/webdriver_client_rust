@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e;
+readonly crate_dir="$( cd $(dirname ${BASH_SOURCE})/..; pwd )";
 
 # Run a build with a given toolchain.
 TC=${TC?Supply a toolchain in this environment variable}
@@ -16,6 +17,7 @@ rustup toolchain update ${TC};
 cd ${CRATE_DIR};
 
 cargo +${TC} build -p webdriver_client --verbose;
+export PATH="${PATH}:${crate_dir}/bin";
 RUST_LOG="webdriver=trace" \
     cargo +${TC} test -p webdriver_client --verbose -- \
     --test-threads=1;
