@@ -170,7 +170,8 @@ impl HttpClient {
 ///
 /// By default the session is removed on `Drop`
 pub struct DriverSession {
-    driver: Box<Driver>,
+    /// driver is kept so it is dropped when DriverSession is dropped.
+    _driver: Box<Driver>,
     client: HttpClient,
     session_id: String,
     drop_session: bool,
@@ -189,7 +190,7 @@ impl DriverSession {
         let sess = try!(Self::new_session(&client, params));
         info!("Session {} created", sess.sessionId);
         Ok(DriverSession {
-            driver: driver,
+            _driver: driver,
             client: client,
             session_id: sess.sessionId,
             drop_session: true,
@@ -204,7 +205,7 @@ impl DriverSession {
         });
         let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
         let mut s = DriverSession {
-            driver: driver,
+            _driver: driver,
             client: HttpClient::new(baseurl),
             session_id: session_id.to_owned(),
             // This starts as false to avoid triggering the deletion call in Drop
