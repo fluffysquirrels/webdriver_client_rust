@@ -3,7 +3,7 @@ set -ex
 
 script_dir=$( cd $(dirname ${BASH_SOURCE[0]}); pwd )
 
-version="v0.18.0"
+version="v0.26.0"
 
 curl -sSL \
      https://github.com/mozilla/geckodriver/releases/download/${version}/geckodriver-${version}-linux64.tar.gz \

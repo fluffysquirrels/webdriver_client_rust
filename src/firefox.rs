@@ -47,7 +47,7 @@ impl GeckoDriverBuilder {
         let child = Command::new(self.driver_binary)
             .arg("-b")
             .arg(self.ff_binary)
-            .arg("--webdriver-port")
+            .arg("--port")
             .arg(format!("{}", port))
             .stdin(Stdio::null())
             .stderr(Stdio::null())
