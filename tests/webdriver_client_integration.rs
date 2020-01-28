@@ -12,7 +12,7 @@ use log::LogLevelFilter;
 use std::io::Read;
 use std::env;
 use std::path::PathBuf;
-use std::sync::{Once, ONCE_INIT};
+use std::sync::Once;
 use std::thread::sleep;
 use std::time::Duration;
 use webdriver_client::{Driver, DriverSession, HttpDriverBuilder, LocationStrategy};
@@ -47,7 +47,7 @@ impl TestBrowser {
         }
     }
 
-    fn driver(&self) -> Box<Driver> {
+    fn driver(&self) -> Box<dyn Driver> {
         match *self {
             TestBrowser::Firefox => {
                 Box::new(GeckoDriver::build()
@@ -126,7 +126,7 @@ macro_rules! browser_tests {
 
                 if sess.browser_name() == Some("chrome") {
                     // chrome sets the xmlns attribute in the html element
-                    assert!(page_source.contains(r#"<html xmlns="http://www.w3.org/1999/xhtml">"#), "Want page_source to contain <html> but was {}", page_source);
+                    assert!(page_source.contains(r#"<html>"#), "Want page_source to contain <html> but was {}", page_source);
                 } else {
                     assert!(page_source.contains("<html>"), "Want page_source to contain <html> but was {}", page_source);
                 }
@@ -466,7 +466,7 @@ browser_tests!(firefox, TestBrowser::Firefox);
 browser_tests!(chrome, TestBrowser::Chrome);
 
 fn ensure_logging_init() {
-    static DONE: Once = ONCE_INIT;
+    static DONE: Once = Once::new();
     DONE.call_once(|| init_logging());
 }
 
