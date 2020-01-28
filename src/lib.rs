@@ -121,12 +121,12 @@ impl HttpClient {
 
     pub fn decode<D: DeserializeOwned + Debug>(res: &mut Response) -> Result<D, Error> {
         let mut data = String::new();
-        try!(res.read_to_string(&mut data));
+        res.read_to_string(&mut data)?;
         debug!("result status: {}\n\
                 body: '{}'", res.status, data);
 
         if !res.status.is_success() {
-            let err: Value<WebDriverError> = try!(serde_json::from_str(&data));
+            let err: Value<WebDriverError> = serde_json::from_str(&data)?;
             trace!("deserialize error result: {:#?}", err);
             return Err(Error::WebDriverError(err.value));
         }
@@ -136,32 +136,32 @@ impl HttpClient {
     }
 
     pub fn get<D: DeserializeOwned + Debug>(&self, path: &str) -> Result<D, Error> {
-        let url = try!(self.baseurl.join(path)
-                           .map_err(|_| Error::InvalidUrl));
+        let url = self.baseurl.join(path)
+                      .map_err(|_| Error::InvalidUrl)?;
         debug!("GET {}", url);
-        let mut res = try!(self.http.get(url)
-                            .send());
+        let mut res = self.http.get(url)
+                          .send()?;
         Self::decode(&mut res)
     }
 
     pub fn delete<D: DeserializeOwned + Debug>(&self, path: &str) -> Result<D, Error> {
-        let url = try!(self.baseurl.join(path)
-                           .map_err(|_| Error::InvalidUrl));
+        let url = self.baseurl.join(path)
+                      .map_err(|_| Error::InvalidUrl)?;
         debug!("DELETE {}", url);
-        let mut res = try!(self.http.delete(url)
-                            .send());
+        let mut res = self.http.delete(url)
+                          .send()?;
         Self::decode(&mut res)
     }
 
     pub fn post<D: DeserializeOwned + Debug, E: Serialize>(&self, path: &str, body: &E) -> Result<D, Error> {
-        let url = try!(self.baseurl.join(path)
-                           .map_err(|_| Error::InvalidUrl));
-        let body_str = try!(serde_json::to_string(body));
+        let url = self.baseurl.join(path)
+                      .map_err(|_| Error::InvalidUrl)?;
+        let body_str = serde_json::to_string(body)?;
         debug!("POST url: {}\n\
                 body: {}", url, body_str);
-        let mut res = try!(self.http.post(url)
-                            .body(&body_str)
-                            .send());
+        let mut res = self.http.post(url)
+                          .body(&body_str)
+                          .send()?;
         Self::decode(&mut res)
     }
 }
@@ -171,7 +171,7 @@ impl HttpClient {
 /// By default the session is removed on `Drop`
 pub struct DriverSession {
     /// driver is kept so it is dropped when DriverSession is dropped.
-    _driver: Box<Driver>,
+    _driver: Box<dyn Driver>,
     client: HttpClient,
     session_id: String,
     drop_session: bool,
@@ -180,14 +180,14 @@ pub struct DriverSession {
 
 impl DriverSession {
     /// Create a new session with the driver.
-    pub fn create_session(driver: Box<Driver>, params: &NewSessionCmd)
+    pub fn create_session(driver: Box<dyn Driver>, params: &NewSessionCmd)
     -> Result<DriverSession, Error>
     {
         let baseurl = Url::parse(driver.url())
                           .map_err(|_| Error::InvalidUrl)?;
         let client = HttpClient::new(baseurl);
         info!("Creating session at {}", client.baseurl);
-        let sess = try!(Self::new_session(&client, params));
+        let sess = Self::new_session(&client, params)?;
         info!("Session {} created", sess.sessionId);
         Ok(DriverSession {
             _driver: driver,
@@ -203,7 +203,7 @@ impl DriverSession {
         let driver = Box::new(HttpDriver {
             url: url.to_owned(),
         });
-        let baseurl = try!(Url::parse(url).map_err(|_| Error::InvalidUrl));
+        let baseurl = Url::parse(url).map_err(|_| Error::InvalidUrl)?;
         let mut s = DriverSession {
             _driver: driver,
             client: HttpClient::new(baseurl),
@@ -247,105 +247,105 @@ impl DriverSession {
 
     /// Create a new webdriver session
     fn new_session(client: &HttpClient, params: &NewSessionCmd) -> Result<Session, Error> {
-        let resp: Value<Session> = try!(client.post("/session", &params));
+        let resp: Value<Session> = client.post("/session", &params)?;
         Ok(resp.value)
     }
 
     /// Navigate to the given URL
     pub fn go(&self, url: &str) -> Result<(), Error> {
         let params = GoCmd { url: url.to_string() };
-        let _: Empty = try!(self.client.post(&format!("/session/{}/url", &self.session_id), &params));
+        let _: Empty = self.client.post(&format!("/session/{}/url", &self.session_id), &params)?;
         Ok(())
     }
 
     pub fn get_current_url(&self) -> Result<String, Error> {
-        let v: Value<_> = try!(self.client.get(&format!("/session/{}/url", self.session_id)));
+        let v: Value<_> = self.client.get(&format!("/session/{}/url", self.session_id))?;
         Ok(v.value)
     }
 
     pub fn back(&self) -> Result<(), Error> {
-        let _: Empty = try!(self.client.post(&format!("/session/{}/back", self.session_id), &Empty {}));
+        let _: Empty = self.client.post(&format!("/session/{}/back", self.session_id), &Empty {})?;
         Ok(())
     }
 
     pub fn forward(&self) -> Result<(), Error> {
-        let _: Empty = try!(self.client.post(&format!("/session/{}/forward", self.session_id), &Empty {}));
+        let _: Empty = self.client.post(&format!("/session/{}/forward", self.session_id), &Empty {})?;
         Ok(())
     }
 
     pub fn refresh(&self) -> Result<(), Error> {
-        let _: Empty = try!(self.client.post(&format!("/session/{}/refresh", self.session_id), &Empty {}));
+        let _: Empty = self.client.post(&format!("/session/{}/refresh", self.session_id), &Empty {})?;
         Ok(())
     }
 
     pub fn get_page_source(&self) -> Result<String, Error> {
-        let v: Value<_> = try!(self.client.get(&format!("/session/{}/source", self.session_id)));
+        let v: Value<_> = self.client.get(&format!("/session/{}/source", self.session_id))?;
         Ok(v.value)
     }
 
     pub fn get_title(&self) -> Result<String, Error> {
-        let v: Value<_> = try!(self.client.get(&format!("/session/{}/title", self.session_id)));
+        let v: Value<_> = self.client.get(&format!("/session/{}/title", self.session_id))?;
         Ok(v.value)
     }
 
     /// Get all cookies
     pub fn get_cookies(&self) -> Result<Vec<Cookie>, Error> {
-        let v: Value<_> = try!(self.client.get(&format!("/session/{}/cookie", self.session_id)));
+        let v: Value<_> = self.client.get(&format!("/session/{}/cookie", self.session_id))?;
         Ok(v.value)
     }
 
     pub fn get_window_handle(&self) -> Result<String, Error> {
-        let v: Value<_> = try!(self.client.get(&format!("/session/{}/window", self.session_id)));
+        let v: Value<_> = self.client.get(&format!("/session/{}/window", self.session_id))?;
         Ok(v.value)
     }
 
     pub fn switch_window(&mut self, handle: &str) -> Result<(), Error> {
-        let _: Empty = try!(self.client.post(&format!("/session/{}/window", self.session_id), &SwitchWindowCmd::from(handle)));
+        let _: Empty = self.client.post(&format!("/session/{}/window", self.session_id), &SwitchWindowCmd::from(handle))?;
         Ok(())
     }
 
     pub fn close_window(&mut self) -> Result<(), Error> {
-        let _: Empty = try!(self.client.delete(&format!("/session/{}/window", self.session_id)));
+        let _: Empty = self.client.delete(&format!("/session/{}/window", self.session_id))?;
         Ok(())
     }
 
     pub fn get_window_handles(&self) -> Result<Vec<String>, Error> {
-        let v: Value<_> = try!(self.client.get(&format!("/session/{}/window/handles", self.session_id)));
+        let v: Value<_> = self.client.get(&format!("/session/{}/window/handles", self.session_id))?;
         Ok(v.value)
     }
 
     pub fn find_element(&self, selector: &str, strategy: LocationStrategy) -> Result<Element, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector};
-        let v: Value<ElementReference> = try!(self.client.post(&format!("/session/{}/element", self.session_id), &cmd));
+        let v: Value<ElementReference> = self.client.post(&format!("/session/{}/element", self.session_id), &cmd)?;
         Ok(Element::new(self, v.value.reference))
     }
 
     pub fn find_elements(&self, selector: &str, strategy: LocationStrategy) -> Result<Vec<Element>, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector};
-        let v: Value<Vec<ElementReference>> = try!(self.client.post(&format!("/session/{}/elements", self.session_id), &cmd));
+        let v: Value<Vec<ElementReference>> = self.client.post(&format!("/session/{}/elements", self.session_id), &cmd)?;
 
         Ok(v.value.into_iter().map(|er| Element::new(self, er.reference)).collect())
     }
 
     pub fn execute(&self, script: ExecuteCmd) -> Result<JsonValue, Error> {
-        let v: Value<JsonValue> = try!(self.client.post(&format!("/session/{}/execute/sync", self.session_id), &script));
+        let v: Value<JsonValue> = self.client.post(&format!("/session/{}/execute/sync", self.session_id), &script)?;
         Ok(v.value)
     }
 
     pub fn execute_async(&self, script: ExecuteCmd) -> Result<JsonValue, Error> {
-        let v: Value<JsonValue> = try!(self.client.post(&format!("/session/{}/execute/async", self.session_id), &script));
+        let v: Value<JsonValue> = self.client.post(&format!("/session/{}/execute/async", self.session_id), &script)?;
         Ok(v.value)
     }
 
     /// Valid values are element references as returned by Element::reference() or null to switch
     /// to the top level frame
     pub fn switch_to_frame(&self, handle: JsonValue) -> Result<(), Error> {
-        let _: Empty = try!(self.client.post(&format!("/session/{}/frame", self.session_id), &SwitchFrameCmd::from(handle)));
+        let _: Empty = self.client.post(&format!("/session/{}/frame", self.session_id), &SwitchFrameCmd::from(handle))?;
         Ok(())
     }
 
     pub fn switch_to_parent_frame(&self) -> Result<(), Error> {
-        let _: Empty = try!(self.client.post(&format!("/session/{}/frame/parent", self.session_id), &Empty {}));
+        let _: Empty = self.client.post(&format!("/session/{}/frame/parent", self.session_id), &Empty {})?;
         Ok(())
     }
 }
@@ -370,7 +370,7 @@ impl<'a> Element<'a> {
     }
 
     pub fn attribute(&self, name: &str) -> Result<String, Error> {
-        let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/attribute/{}", self.session.session_id(), self.reference, name)));
+        let v: Value<_> = self.session.client.get(&format!("/session/{}/element/{}/attribute/{}", self.session.session_id(), self.reference, name))?;
         Ok(v.value)
     }
 
@@ -381,40 +381,40 @@ impl<'a> Element<'a> {
     /// [our issue comment]: https://github.com/fluffysquirrels/webdriver_client_rust/pull/14#issuecomment-361909999
     /// [ChromeDriver issue]: https://bugs.chromium.org/p/chromedriver/issues/detail?id=1936
     pub fn property(&self, name: &str) -> Result<String, Error> {
-        let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/property/{}", self.session.session_id(), self.reference, name)));
+        let v: Value<_> = self.session.client.get(&format!("/session/{}/element/{}/property/{}", self.session.session_id(), self.reference, name))?;
         Ok(v.value)
     }
 
     pub fn clear(&self) -> Result<(), Error> {
-        let _: Value<JsonValue> = try!(self.session.client.post(&format!("/session/{}/element/{}/clear", self.session.session_id(), self.reference), &Empty {}));
+        let _: Value<JsonValue> = self.session.client.post(&format!("/session/{}/element/{}/clear", self.session.session_id(), self.reference), &Empty {})?;
         Ok(())
     }
 
     pub fn css_value(&self, name: &str) -> Result<String, Error> {
-        let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/css/{}", self.session.session_id(), self.reference, name)));
+        let v: Value<_> = self.session.client.get(&format!("/session/{}/element/{}/css/{}", self.session.session_id(), self.reference, name))?;
         Ok(v.value)
     }
 
     pub fn text(&self) -> Result<String, Error> {
-        let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/text", self.session.session_id(), self.reference)));
+        let v: Value<_> = self.session.client.get(&format!("/session/{}/element/{}/text", self.session.session_id(), self.reference))?;
         Ok(v.value)
     }
 
     /// Returns the tag name for this element
     pub fn name(&self) -> Result<String, Error> {
-        let v: Value<_> = try!(self.session.client.get(&format!("/session/{}/element/{}/name", self.session.session_id(), self.reference)));
+        let v: Value<_> = self.session.client.get(&format!("/session/{}/element/{}/name", self.session.session_id(), self.reference))?;
         Ok(v.value)
     }
 
     pub fn find_element(&self, selector: &str, strategy: LocationStrategy) -> Result<Element, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector };
-        let v: Value<ElementReference> = try!(self.session.client.post(&format!("/session/{}/element/{}/element", self.session.session_id, self.reference), &cmd));
+        let v: Value<ElementReference> = self.session.client.post(&format!("/session/{}/element/{}/element", self.session.session_id, self.reference), &cmd)?;
         Ok(Element::new(self.session, v.value.reference))
     }
 
     pub fn find_elements(&self, selector: &str, strategy: LocationStrategy) -> Result<Vec<Element>, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector };
-        let v: Value<Vec<ElementReference>> = try!(self.session.client.post(&format!("/session/{}/element/{}/elements", self.session.session_id, self.reference), &cmd));
+        let v: Value<Vec<ElementReference>> = self.session.client.post(&format!("/session/{}/element/{}/elements", self.session.session_id, self.reference), &cmd)?;
 
         Ok(v.value.into_iter().map(|er| Element::new(self.session, er.reference)).collect())
     }
