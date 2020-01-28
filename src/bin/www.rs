@@ -15,11 +15,11 @@ extern crate stderrlog;
 
 fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), Error> {
     match name {
-        "back" => try!(sess.back()),
-        "go" => try!(sess.go(args)),
-        "refresh" => try!(sess.refresh()),
-        "source" => println!("{}", try!(sess.get_page_source())),
-        "url" => println!("{}", try!(sess.get_current_url())),
+        "back" => sess.back()?,
+        "go" => sess.go(args)?,
+        "refresh" => sess.refresh()?,
+        "source" => println!("{}", sess.get_page_source()?),
+        "url" => println!("{}", sess.get_current_url()?),
         "innerhtml" => {
             for (idx, elem) in sess.find_elements(args, LocationStrategy::Css)?.iter().enumerate() {
                 println!("#{} {}", idx, elem.inner_html()?);
@@ -53,9 +53,9 @@ fn execute_function(name: &str, args: &str, sess: &DriverSession) -> Result<(), 
         "switchframe" => {
             let arg = args.trim();
             if arg.is_empty() {
-                try!(sess.switch_to_frame(JsonValue::Null));
+                sess.switch_to_frame(JsonValue::Null)?;
             } else {
-                try!(sess.switch_to_frame(try!(Element::new(sess, arg.to_string()).reference())));
+                sess.switch_to_frame(Element::new(sess, arg.to_string()).reference()?)?;
             }
         }
         _ => println!("Unknown function: \"{}\"", name),
