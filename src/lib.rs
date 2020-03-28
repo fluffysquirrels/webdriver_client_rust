@@ -314,6 +314,11 @@ impl DriverSession {
         Ok(v.value)
     }
 
+    pub fn dismiss_alert(&self) -> Result<(), Error> {
+        let _: Empty = self.client.post(&format!("/session/{}/alert/dismiss", self.session_id), &Empty {})?;
+        Ok(())
+    }
+    
     pub fn accept_alert(&self) -> Result<(), Error> {
         let _: Empty = self.client.post(&format!("/session/{}/alert/accept", self.session_id), &Empty {})?;
         Ok(())
@@ -324,10 +329,10 @@ impl DriverSession {
         Ok(v.value)
     }
 
-    pub fn send_alert_text(&self, text :&str) -> Result<(), Error> {
+    /*pub fn send_alert_text(&self, text :&str) -> Result<(), Error> {
         let _: Empty = self.client.post(&format!("/session/{}/alert/text", self.session_id), &SendAlertTextCmd::from(text))?;
         Ok(())
-    }
+    }*/
 
     pub fn find_element(&self, selector: &str, strategy: LocationStrategy) -> Result<Element, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector};
