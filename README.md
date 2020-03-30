@@ -46,6 +46,10 @@ export PATH=$PATH:$PWD/bin
 
 ## Changelog
 
+### master from v0.2.3
+
+* Added screenshot support: `DriverSession::screenshot()` and `Element::screenshot()`.
+
 ### v0.2.0
 
 * Added ChromeDriver.
