@@ -261,6 +261,20 @@ macro_rules! browser_tests {
             }
 
             #[test]
+            fn element_click() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let output = sess.find_element("#set-text-output", LocationStrategy::Css)
+                                 .expect("Finding output element");
+                assert_eq!(&output.text().expect("Getting output text"), "Unset");
+                let button = sess.find_element("#set-text-btn", LocationStrategy::Css)
+                                 .expect("Finding button element");
+                button.click().expect("Click button");
+                assert_eq!(&output.text().expect("Getting output text"), "Set");
+            }
+
+            #[test]
             fn element_clear() {
                 let (server, sess) = setup();
                 if sess.browser_name() == Some("chrome") {

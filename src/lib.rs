@@ -391,6 +391,10 @@ impl<'a> Element<'a> {
         Ok(v.value)
     }
 
+    /// Return this element's property value.
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#get-element-property
+    ///
     /// Note: Not currently supported by ChromeDriver.
     ///
     /// See: [our issue comment], [ChromeDriver issue].
@@ -400,6 +404,16 @@ impl<'a> Element<'a> {
     pub fn property(&self, name: &str) -> Result<String, Error> {
         let v: Value<_> = self.session.client.get(&format!("/session/{}/element/{}/property/{}", self.session.session_id(), self.reference, name))?;
         Ok(v.value)
+    }
+
+    /// Click this element
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#element-click
+    pub fn click(&self) -> Result<(), Error> {
+        let _: Value<JsonValue> = self.session.client.post(
+            &format!("/session/{}/element/{}/click", self.session.session_id(), self.reference),
+            &Empty {})?;
+        Ok(())
     }
 
     pub fn clear(&self) -> Result<(), Error> {

@@ -21,5 +21,14 @@
       <br />
       <span id="child2">Other inner</span>
     </div>
+    <p>
+      <button id="set-text-btn">Set text</button>
+      <span id="set-text-output">Unset</span>
+    </p>
+    <script type="text/javascript">
+      document.getElementById("set-text-btn").addEventListener("click", () => {
+        document.getElementById("set-text-output").innerText = "Set";
+      });
+    </script>
   </body>
 </html>
