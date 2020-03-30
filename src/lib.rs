@@ -399,7 +399,7 @@ impl<'a> Element<'a> {
         Ok(v.value)
     }
 
-    /// Click this element
+    /// Click this element.
     ///
     /// WebDriver spec: https://www.w3.org/TR/webdriver/#element-click
     pub fn click(&self) -> Result<(), Error> {
@@ -409,8 +409,22 @@ impl<'a> Element<'a> {
         Ok(())
     }
 
+    /// Clear the text of this element.
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#element-clear
     pub fn clear(&self) -> Result<(), Error> {
         let _: Value<JsonValue> = self.session.client.post(&format!("/session/{}/element/{}/clear", self.session.session_id(), self.reference), &Empty {})?;
+        Ok(())
+    }
+
+    /// Send key presses to this element.
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#element-send-keys
+    pub fn send_keys(&self, s: &str) -> Result<(), Error> {
+        let _: Value<JsonValue> =
+            self.session.client.post(&format!("/session/{}/element/{}/value",
+                                              self.session.session_id(), self.reference),
+                                     &json!({ "text": s }))?;
         Ok(())
     }
 

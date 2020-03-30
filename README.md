@@ -50,6 +50,7 @@ export PATH=$PATH:$PWD/bin
 
 * Added screenshot support: `DriverSession::screenshot()` and `Element::screenshot()`.
 * Add `Element::click()`.
+* Add `Element::send_keys()`.
 
 ### v0.2.0
 
