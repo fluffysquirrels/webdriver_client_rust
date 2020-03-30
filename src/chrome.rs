@@ -3,6 +3,7 @@
 use super::*;
 
 use std::process::{Command, Child, Stdio};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use std::ffi::OsString;
@@ -48,16 +49,23 @@ impl ChromeDriverBuilder {
         // TODO: parameterize this
         thread::sleep(Duration::new(1, 500));
         Ok(ChromeDriver {
-            child: child,
-            url: format!("http://localhost:{}", port),
-            kill_on_drop: self.kill_on_drop,
+            inner: Arc::new(ChromeDriverInner {
+                child: child,
+                url: format!("http://localhost:{}", port),
+                kill_on_drop: self.kill_on_drop,
+            }),
         })
     }
 }
 
 
 /// A chromedriver process
+#[derive(Clone)]
 pub struct ChromeDriver {
+    inner: Arc<ChromeDriverInner>,
+}
+
+struct ChromeDriverInner {
     child: Child,
     url: String,
     kill_on_drop: bool,
@@ -70,9 +78,14 @@ impl ChromeDriver {
     pub fn build() -> ChromeDriverBuilder {
         ChromeDriverBuilder::new()
     }
+
+    /// Start a session for this driver
+    pub fn session(&self, params: &NewSessionCmd) -> Result<DriverSession, Error> where Self : Sized + 'static {
+        DriverSession::create_session(Box::new(self.clone()), params)
+    }
 }
 
-impl Drop for ChromeDriver {
+impl Drop for ChromeDriverInner {
     fn drop(&mut self) {
         if self.kill_on_drop {
             let _ = self.child.kill();
@@ -82,6 +95,6 @@ impl Drop for ChromeDriver {
 
 impl Driver for ChromeDriver {
     fn url(&self) -> &str {
-        &self.url
+        &self.inner.url
     }
 }
