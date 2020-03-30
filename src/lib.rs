@@ -394,13 +394,6 @@ impl<'a> Element<'a> {
     /// Return this element's property value.
     ///
     /// WebDriver spec: https://www.w3.org/TR/webdriver/#get-element-property
-    ///
-    /// Note: Not currently supported by ChromeDriver.
-    ///
-    /// See: [our issue comment], [ChromeDriver issue].
-    ///
-    /// [our issue comment]: https://github.com/fluffysquirrels/webdriver_client_rust/pull/14#issuecomment-361909999
-    /// [ChromeDriver issue]: https://bugs.chromium.org/p/chromedriver/issues/detail?id=1936
     pub fn property(&self, name: &str) -> Result<String, Error> {
         let v: Value<_> = self.session.client.get(&format!("/session/{}/element/{}/property/{}", self.session.session_id(), self.reference, name))?;
         Ok(v.value)

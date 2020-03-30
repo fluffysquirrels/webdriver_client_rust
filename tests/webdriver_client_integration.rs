@@ -277,10 +277,6 @@ macro_rules! browser_tests {
             #[test]
             fn element_clear() {
                 let (server, sess) = setup();
-                if sess.browser_name() == Some("chrome") {
-                    // FIXME chrome does not implement the property endpoint
-                    return;
-                }
 
                 let page1 = server.url("/page1.html");
                 sess.go(&page1).expect("Error going to page1");
@@ -336,10 +332,6 @@ macro_rules! browser_tests {
             #[test]
             fn refresh() {
                 let (server, sess) = setup();
-                if sess.browser_name() == Some("chrome") {
-                    // FIXME chrome does not implement the property endpoint
-                    return;
-                }
 
                 let page1 = server.url("/page1.html");
                 sess.go(&page1).expect("Error going to page1");
