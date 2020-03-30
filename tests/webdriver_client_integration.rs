@@ -396,8 +396,8 @@ macro_rules! browser_tests {
             #[test]
             fn frame_switch() {
                 let (server, sess) = setup();
-                let page1 = server.url("/page3.html");
-                sess.go(&page1).expect("Error going to page1");
+                let page3 = server.url("/page3.html");
+                sess.go(&page3).expect("Error going to page3");
 
                 // switching to parent from parent is harmless
                 sess.switch_to_parent_frame().unwrap();
@@ -446,6 +446,31 @@ macro_rules! browser_tests {
                 sess.go(&test_url).unwrap();
                 let url = sess.get_current_url().unwrap();
                 assert_eq!(url, test_url);
+            }
+
+            #[test]
+            fn screenshot_frame() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let ss = sess.screenshot().expect("Screenshot");
+                std::fs::create_dir_all("target/screenshots").expect("Create screenshot dir");
+                ss.save_file(&format!("target/screenshots/{:?}_frame.png",
+                                      test_browser()))
+                  .expect("Save screenshot");
+            }
+
+            #[test]
+            fn screenshot_element() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let ss = sess.find_element("#parent", LocationStrategy::Css).expect("element")
+                             .screenshot().expect("Screenshot");
+                std::fs::create_dir_all("target/screenshots").expect("Create screenshot dir");
+                ss.save_file(&format!("target/screenshots/{:?}_element.png",
+                                      test_browser()))
+                  .expect("Save screenshot");
             }
 
             fn setup() -> (FileServer, DriverSession) {

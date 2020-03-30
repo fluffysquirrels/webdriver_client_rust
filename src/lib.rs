@@ -49,6 +49,7 @@ pub enum Error {
     Io(io::Error),
     JsonDecodeError(serde_json::Error),
     WebDriverError(WebDriverError),
+    Base64DecodeError(base64::DecodeError),
 }
 
 impl fmt::Display for Error {
@@ -60,6 +61,7 @@ impl fmt::Display for Error {
             Error::Io(ref err) => write!(f, "{}", err),
             Error::JsonDecodeError(ref s) => write!(f, "Received invalid response from browser: {}", s),
             Error::WebDriverError(ref err) => write!(f, "Error: {}", err.message),
+            Error::Base64DecodeError(ref err) => write!(f, "Base64DecodeError: {}", err),
         }
     }
 }
@@ -79,6 +81,12 @@ impl From<io::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(e: serde_json::Error) -> Error {
         Error::JsonDecodeError(e)
+    }
+}
+
+impl From<base64::DecodeError> for Error {
+    fn from(e: base64::DecodeError) -> Error {
+        Error::Base64DecodeError(e)
     }
 }
 
@@ -348,6 +356,15 @@ impl DriverSession {
         let _: Empty = self.client.post(&format!("/session/{}/frame/parent", self.session_id), &Empty {})?;
         Ok(())
     }
+
+    /// Take a screenshot of the current frame.
+    ///
+    /// WebDriver specification: https://www.w3.org/TR/webdriver/#take-screenshot
+    pub fn screenshot(&self) -> Result<Screenshot, Error> {
+        let v: Value<String> = self.client.get(&format!("/session/{}/screenshot",
+                                                        self.session_id))?;
+        Screenshot::from_string(v.value)
+    }
 }
 
 impl Drop for DriverSession {
@@ -447,6 +464,17 @@ impl<'a> Element<'a> {
         };
         self.session.execute(script)
     }
+
+    /// Take a screenshot of this element
+    ///
+    /// WebDriver specification: https://www.w3.org/TR/webdriver/#take-element-screenshot
+    pub fn screenshot(&self) -> Result<Screenshot, Error> {
+        let v: Value<String> = self.session.client.get(
+            &format!("/session/{}/element/{}/screenshot",
+                     self.session.session_id,
+                     self.reference))?;
+        Screenshot::from_string(v.value)
+    }
 }
 
 impl<'a> fmt::Debug for Element<'a> {
@@ -473,5 +501,25 @@ impl<'a> FrameContext<'a> {
 impl<'a> Drop for FrameContext<'a> {
     fn drop(&mut self) {
         let _ = self.session.switch_to_frame(JsonValue::Null);
+    }
+}
+
+pub struct Screenshot {
+    base64: String,
+}
+
+impl Screenshot {
+    fn from_string(s: String) -> Result<Screenshot, Error> {
+        Ok(Screenshot {
+            base64: s,
+        })
+    }
+
+    pub fn bytes(&self) -> Result<Vec<u8>, Error> {
+        Ok(base64::decode(&self.base64)?)
+    }
+
+    pub fn save_file(&self, path: &str) -> Result<(), Error> {
+        Ok(std::fs::write(path, self.bytes()?)?)
     }
 }

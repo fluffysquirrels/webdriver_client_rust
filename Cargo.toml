@@ -16,6 +16,7 @@ repository = "fluffysquirrels/webdriver_client_rust"
 branch = "master"
 
 [dependencies]
+base64 = "^0.12.0"
 derive_builder = "^0.5.1"
 hyper = "^0.10"
 serde = "^1.0"
