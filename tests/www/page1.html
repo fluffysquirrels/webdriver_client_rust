@@ -25,9 +25,30 @@
       <button id="set-text-btn">Set text</button>
       <span id="set-text-output">Unset</span>
     </p>
+    <p>
+      <h2>Alerts</h2>
+      <button id="alert-btn">Alert</button>
+      <button id="confirm-btn">Confirm</button>
+      <button id="prompt-btn">Prompt</button>
+      <div id="alerts-out"></div>
+    </p>
     <script type="text/javascript">
       document.getElementById("set-text-btn").addEventListener("click", () => {
         document.getElementById("set-text-output").innerText = "Set";
+      });
+
+      document.getElementById("alert-btn").addEventListener("click", () => {
+        alert("Alert");
+      });
+
+      document.getElementById("confirm-btn").addEventListener("click", () => {
+        let out = confirm("Confirm");
+        document.getElementById("alerts-out").innerText = out.toString();
+      });
+
+      document.getElementById("prompt-btn").addEventListener("click", () => {
+        let out = prompt("Prompt");
+        document.getElementById("alerts-out").innerText = out.toString();
       });
     </script>
   </body>

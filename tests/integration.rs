@@ -489,6 +489,71 @@ macro_rules! browser_tests {
                   .expect("Save screenshot");
             }
 
+            #[test]
+            fn dismiss_alert() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let btn = sess.find_element("#alert-btn", LocationStrategy::Css).expect("btn");
+                btn.click().expect("click");
+                sess.dismiss_alert().expect("dismiss alert");
+            }
+
+            #[test]
+            fn accept_confirm_alert() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let btn = sess.find_element("#confirm-btn", LocationStrategy::Css)
+                              .expect("find btn");
+                btn.click().expect("click");
+                sess.accept_alert().expect("accept alert");
+                let out = sess.find_element("#alerts-out", LocationStrategy::Css)
+                              .expect("find output");
+                assert_eq!("true", out.text().expect("output text"));
+            }
+
+            #[test]
+            fn dismiss_confirm_alert() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let btn = sess.find_element("#confirm-btn", LocationStrategy::Css)
+                              .expect("find btn");
+                btn.click().expect("click");
+                sess.dismiss_alert().expect("accept alert");
+                let out = sess.find_element("#alerts-out", LocationStrategy::Css)
+                              .expect("find output");
+                assert_eq!("false", out.text().expect("output text"));
+            }
+
+            #[test]
+            fn get_alert_text() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let btn = sess.find_element("#alert-btn", LocationStrategy::Css)
+                              .expect("find btn");
+                btn.click().expect("click");
+                assert_eq!("Alert", sess.get_alert_text().expect("get_alert_text"));
+                sess.dismiss_alert().expect("accept alert");
+            }
+
+            #[test]
+            fn send_alert_text() {
+                let (server, sess) = setup();
+                let page1 = server.url("/page1.html");
+                sess.go(&page1).expect("Error going to page1");
+                let btn = sess.find_element("#prompt-btn", LocationStrategy::Css)
+                              .expect("find btn");
+                btn.click().expect("click");
+                sess.send_alert_text("foobar").expect("send_alert_text");
+                sess.accept_alert().expect("accept alert");
+                let out = sess.find_element("#alerts-out", LocationStrategy::Css)
+                              .expect("find output");
+                assert_eq!("foobar", out.text().expect("output text"));
+            }
+
             fn setup() -> (FileServer, DriverSession) {
                 ensure_logging_init();
 
@@ -498,6 +563,7 @@ macro_rules! browser_tests {
 
                 (server, session)
             }
+
             // End of browser_tests tests
         }
     }
