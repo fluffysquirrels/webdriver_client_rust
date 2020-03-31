@@ -350,7 +350,8 @@ impl DriverSession {
     ///
     /// WebDriver spec: https://www.w3.org/TR/webdriver/#send-alert-text
     pub fn send_alert_text(&self, text :&str) -> Result<(), Error> {
-        let _: Empty = self.client.post(&format!("/session/{}/alert/text", self.session_id), &SendAlertTextCmd::from(text))?;
+        let _: Empty = self.client.post(&format!("/session/{}/alert/text", self.session_id),
+                                        &SendAlertTextCmd { text: text.to_owned() })?;
         Ok(())
     }
 

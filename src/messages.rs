@@ -238,6 +238,11 @@ pub struct ExecuteCmd {
     pub args: Vec<JsonValue>,
 }
 
+#[derive(Serialize)]
+pub struct SendAlertTextCmd {
+    pub text: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::NewSessionCmd;
