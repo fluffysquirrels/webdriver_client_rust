@@ -51,6 +51,7 @@ export PATH=$PATH:$PWD/bin
 * Added screenshot support: `DriverSession::screenshot()` and `Element::screenshot()`.
 * Add `Element::click()`.
 * Add `Element::send_keys()`.
+* Add alert functionality to `DriverSession`: `dismiss_alert`, `accept_alert`, `get_alert_text`, `send_alert_text`.
 
 ### v0.2.0
 
