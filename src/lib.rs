@@ -322,25 +322,37 @@ impl DriverSession {
         Ok(v.value)
     }
 
+    /// Dismiss an active dialog, if present.
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#dismiss-alert
     pub fn dismiss_alert(&self) -> Result<(), Error> {
         let _: Empty = self.client.post(&format!("/session/{}/alert/dismiss", self.session_id), &Empty {})?;
         Ok(())
     }
-    
+
+    /// Accept an active dialog, if present.
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#accept-alert
     pub fn accept_alert(&self) -> Result<(), Error> {
         let _: Empty = self.client.post(&format!("/session/{}/alert/accept", self.session_id), &Empty {})?;
         Ok(())
     }
 
+    /// Get the message of an active dialog, if present.
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#get-alert-text
     pub fn get_alert_text(&self) -> Result<String, Error> {
         let v: Value<_> = self.client.get(&format!("/session/{}/alert/text", self.session_id))?;
         Ok(v.value)
     }
 
-    /*pub fn send_alert_text(&self, text :&str) -> Result<(), Error> {
+    /// Set the text field of a user prompt.
+    ///
+    /// WebDriver spec: https://www.w3.org/TR/webdriver/#send-alert-text
+    pub fn send_alert_text(&self, text :&str) -> Result<(), Error> {
         let _: Empty = self.client.post(&format!("/session/{}/alert/text", self.session_id), &SendAlertTextCmd::from(text))?;
         Ok(())
-    }*/
+    }
 
     pub fn find_element(&self, selector: &str, strategy: LocationStrategy) -> Result<Element, Error> {
         let cmd = FindElementCmd { using: strategy, value: selector};
