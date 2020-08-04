@@ -37,7 +37,7 @@ use std::convert::From;
 use std::fmt::{self, Debug};
 use std::io::Read;
 use std::io;
-
+use std::error::Error as StdError;
 // --------
 
 /// Error conditions returned by this crate.
@@ -50,6 +50,17 @@ pub enum Error {
     JsonDecodeError(serde_json::Error),
     WebDriverError(WebDriverError),
     Base64DecodeError(base64::DecodeError),
+}
+
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match *self {
+            Error::Io(ref err) => Some(err),
+            Error::JsonDecodeError(ref err) => Some(err),
+            Error::Base64DecodeError(ref err) => Some(err),
+            _ => None
+        }
+    } 
 }
 
 impl fmt::Display for Error {
