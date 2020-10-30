@@ -46,6 +46,10 @@ export PATH=$PATH:$PWD/bin
 
 ## Changelog
 
+### v0.2.5
+
+* `Error` implements `std::error::Error`.
+
 ### v0.2.4
 
 * Added screenshot support: `DriverSession::screenshot()` and `Element::screenshot()`.
