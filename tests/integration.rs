@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 extern crate env_logger;
 extern crate hyper;
 extern crate log;

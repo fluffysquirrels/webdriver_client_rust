@@ -163,7 +163,7 @@ impl Serialize for ElementReference {
 
 impl<'de> Deserialize<'de> for ElementReference {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        enum Field { Reference };
+        enum Field { Reference }
 
         impl<'de> Deserialize<'de> for Field {
             fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
