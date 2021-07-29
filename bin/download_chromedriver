@@ -3,7 +3,7 @@ set -ex
 
 script_dir=$( cd $(dirname ${BASH_SOURCE[0]}); pwd )
 
-version=$(wget -q -O - http://chromedriver.storage.googleapis.com/LATEST_RELEASE)
+version=${version:-$(wget -q -O - http://chromedriver.storage.googleapis.com/LATEST_RELEASE)};
 
 curl -sSL \
      http://chromedriver.storage.googleapis.com/$version/chromedriver_linux64.zip \

@@ -235,12 +235,13 @@ macro_rules! browser_tests {
 
                 sess.go(&page1).expect("Error going to page1");
                 let link = sess.find_element("#link_to_page_2", LocationStrategy::Css).expect("Error finding element");
+
+                assert_eq!(&link.attribute("href").expect("Error getting attribute"),
+                           "/page2.html");
+
                 if sess.browser_name() == Some("chrome") {
-                    // chrome returns absolute URLs
-                    assert_eq!(&link.attribute("href").expect("Error getting attribute"), &server.url("/page2.html"));
                     // FIXME: chrome does not implement the property endpoint
                 } else {
-                    assert_eq!(&link.attribute("href").expect("Error getting attribute"), "/page2.html");
                     assert_eq!(&link.property("href").expect("Error getting property"), &page2);
                 }
             }

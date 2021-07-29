@@ -46,6 +46,10 @@ export PATH=$PATH:$PWD/bin
 
 ## Changelog
 
+### v0.2.6
+
+* Update tests, Chrome now returns relative URLs on links.
+
 ### v0.2.5
 
 * `Error` implements `std::error::Error`.
