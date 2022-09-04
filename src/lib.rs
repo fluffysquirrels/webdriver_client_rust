@@ -100,7 +100,7 @@ impl From<base64::DecodeError> for Error {
 }
 
 /// WebDriver server that can create a session.
-pub trait Driver {
+pub trait Driver: Send + Sync {
     /// The url used to connect to this driver
     fn url(&self) -> &str;
 
