@@ -12,7 +12,7 @@ set -x;
 bin/download_geckodriver;
 
 # Install chromedriver
-version="92.0.4515.107" bin/download_chromedriver;
+version="108.0.5359.22" bin/download_chromedriver;
 export CHROME_BIN=/usr/bin/google-chrome-stable
 export CHROME_HEADLESS=1
 

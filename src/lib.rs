@@ -407,6 +407,10 @@ impl DriverSession {
                                                         self.session_id))?;
         Screenshot::from_string(v.value)
     }
+
+    pub fn capabilities(&self) -> &BTreeMap<String, JsonValue> {
+        &self.capabilities
+    }
 }
 
 impl Drop for DriverSession {
